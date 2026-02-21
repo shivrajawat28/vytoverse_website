@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard | Vyto Verse</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="admin-page">
+    <header class="admin-header">
+        <div class="logo-section">
+            <img src="/static/images/logo.png" class="logo" alt="Vyto Verse Logo">
+            <h2>Vyto Verse</h2>
+        </div>
+
+        <div class="admin-header-right">
+            <button class="admin-tab-btn active" onclick="openAdminPanel('users-panel', this)">Users</button>
+            <button class="admin-tab-btn" onclick="openAdminPanel('tasks-panel', this)">Assign Task</button>
+            <button class="admin-tab-btn" onclick="openAdminPanel('library-panel', this)">Library</button>
+            <button class="btn" onclick="logout()">Logout</button>
+        </div>
+    </header>
+
+    <main class="admin-shell">
+        <h1 class="section-title">Admin Dashboard</h1>
+
+        <section id="users-panel" class="admin-panel active">
+            <div class="admin-actions admin-search-row">
+                <input type="text" id="user-search-input" class="admin-input" placeholder="Search user by name">
+                <button class="btn" onclick="searchUser()">Search</button>
+                <button class="btn" onclick="loadAllUsers()">Reset</button>
+            </div>
+
+            <h2 class="sub-title">All Users</h2>
+            <div id="adminUsers" class="admin-user-list"></div>
+        </section>
+
+        <section id="tasks-panel" class="admin-panel">
+            <h2 class="sub-title">Assign Task</h2>
+            <article class="admin-card admin-task-form">
+                <div class="admin-row">
+                    <input type="text" id="task-user-search" class="admin-input" placeholder="Search user for assignment">
+                    <select id="task-assigned-user" class="admin-select"></select>
+                    <input type="text" id="task-title-global" class="admin-input" placeholder="Task title">
+                    <textarea id="task-desc-global" class="admin-input" placeholder="Task description"></textarea>
+                    <select id="task-status-global" class="admin-select">
+                        <option value="pending" selected>Pending</option>
+                        <option value="not_completed">Not Completed</option>
+                        <option value="completed">Completed</option>
+                    </select>
+                    <button class="btn" onclick="assignTaskFromForm()">Assign Task</button>
+                </div>
+            </article>
+
+            <h2 class="sub-title">Recent Tasks</h2>
+            <div id="adminTasks" class="task-list"></div>
+        </section>
+
+        <section id="library-panel" class="admin-panel">
+            <h2 class="sub-title">Library Manager</h2>
+            <article class="admin-card">
+                <div class="admin-row">
+                    <input type="text" id="library-title" class="admin-input" placeholder="Library title">
+                    <input type="text" id="library-drive-link" class="admin-input" placeholder="Drive link (https://...)">
+                    <input type="text" id="library-preview-link" class="admin-input" placeholder="Preview images (comma separated URLs or filenames)">
+                    <button class="btn" onclick="createLibrary()">Add Library</button>
+                </div>
+            </article>
+
+            <h2 class="sub-title">Library List</h2>
+            <div id="adminLibraries" class="task-list"></div>
+        </section>
+    </main>
+
+    <script src="/static/js/script.js"></script>
+    <script>
+        let allAdminUsers = [];
+
+        function statusOptions(selected) {
+            const normalized = (selected || "pending").toLowerCase().replaceAll(" ", "_");
+            const options = [
+                { value: "pending", label: "Pending" },
+                { value: "not_completed", label: "Not Completed" },
+                { value: "completed", label: "Completed" }
+            ];
+
+            return options
+                .map(opt => `<option value="${opt.value}" ${opt.value === normalized ? "selected" : ""}>${opt.label}</option>`)
+                .join("");
+        }
+
+        function openAdminPanel(panelId, triggerButton) {
+            document.querySelectorAll(".admin-panel").forEach(panel => {
+                panel.classList.remove("active");
+            });
+            document.getElementById(panelId).classList.add("active");
+
+            document.querySelectorAll(".admin-tab-btn").forEach(btn => btn.classList.remove("active"));
+            if (triggerButton) {
+                triggerButton.classList.add("active");
+            }
+
+            if (panelId === "users-panel") {
+                loadAllUsers();
+            } else if (panelId === "tasks-panel") {
+                loadAdminTasks();
+                renderTaskAssignees(document.getElementById("task-user-search")?.value || "");
+            } else if (panelId === "library-panel") {
+                loadAdminLibraries();
+            }
+        }
+
+        async function loadAllUsers() {
+            const token = getToken();
+            const response = await fetch("/admin/users", {
+                headers: { "Authorization": "Bearer " + token }
+            });
+            const data = await response.json();
+
+            if (!response.ok) {
+                showFlash(data.detail || "Failed to load users", "error");
+                return;
+            }
+
+            allAdminUsers = data;
+            renderUsers(data);
+            renderTaskAssignees(document.getElementById("task-user-search")?.value || "");
+        }
+
+        async function searchUser() {
+            const token = getToken();
+            const query = document.getElementById("user-search-input").value.trim();
+
+            if (!query) {
+                await loadAllUsers();
+                return;
+            }
+
+            const response = await fetch(`/admin/users/search?query=${encodeURIComponent(query)}`, {
+                headers: { "Authorization": "Bearer " + token }
+            });
+            const data = await response.json();
+
+            if (!response.ok) {
+                showFlash(data.detail || "Search failed", "error");
+                return;
+            }
+
+            renderUsers(data);
+        }
+
+        function renderUsers(users) {
+            const container = document.getElementById("adminUsers");
+            container.innerHTML = "";
+
+            if (!users.length) {
+                container.innerHTML = "<p>No users found.</p>";
+                return;
+            }
+
+            container.innerHTML = users.map(user => `
+                <article class="admin-user-row">
+                    <div class="admin-user-main">
+                        <h3>${escapeHtml(user.name)}</h3>
+                        <p><strong>Email:</strong> ${escapeHtml(user.email)}</p>
+                        <p><strong>Phone:</strong> ${escapeHtml(user.phone || "-")}</p>
+                        <p><strong>Role:</strong> ${escapeHtml(user.role)}</p>
+                        <p><strong>Level:</strong> ${escapeHtml(user.level)}</p>
+                    </div>
+
+                    <div class="admin-user-edit">
+                        <input type="number" id="level-${user.id}" class="admin-input" placeholder="New level" min="1">
+                        <input type="text" id="role-${user.id}" class="admin-input" placeholder="New role">
+                        <button class="btn" onclick="updateUser(${user.id})">Update User</button>
+                    </div>
+                </article>
+            `).join("");
+        }
+
+        async function updateUser(userId) {
+            const token = getToken();
+            const newLevel = document.getElementById(`level-${userId}`).value;
+            const newRole = document.getElementById(`role-${userId}`).value.trim();
+
+            const response = await fetch(`/admin/users/${userId}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + token
+                },
+                body: JSON.stringify({
+                    level: newLevel ? parseInt(newLevel, 10) : null,
+                    role: newRole || null
+                })
+            });
+
+            const result = await response.json();
+            if (!response.ok) {
+                showFlash(result.detail || "Unable to update user", "error");
+                return;
+            }
+
+            showFlash("User updated", "success");
+            await loadAllUsers();
+        }
+
+        function renderTaskAssignees(query = "") {
+            const select = document.getElementById("task-assigned-user");
+            if (!select) return;
+
+            const needle = query.trim().toLowerCase();
+            const matchedUsers = allAdminUsers.filter(user => {
+                if (!needle) return true;
+                return (
+                    String(user.name || "").toLowerCase().includes(needle) ||
+                    String(user.email || "").toLowerCase().includes(needle)
+                );
+            });
+
+            if (!matchedUsers.length) {
+                select.innerHTML = "<option value=''>No user found</option>";
+                return;
+            }
+
+            select.innerHTML = matchedUsers
+                .map(user => `<option value="${user.id}">${escapeHtml(user.name)} (${escapeHtml(user.email)})</option>`)
+                .join("");
+        }
+
+        async function assignTaskFromForm() {
+            const token = getToken();
+            const assignedTo = parseInt(document.getElementById("task-assigned-user").value, 10);
+            const title = document.getElementById("task-title-global").value.trim();
+            const description = document.getElementById("task-desc-global").value.trim();
+            const status = document.getElementById("task-status-global").value;
+
+            if (!assignedTo) {
+                showFlash("Please select a user", "error");
+                return;
+            }
+            if (!title) {
+                showFlash("Task title is required", "error");
+                return;
+            }
+
+            const response = await fetch("/admin/tasks", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + token
+                },
+                body: JSON.stringify({
+                    title,
+                    description: description || null,
+                    assigned_to: assignedTo,
+                    status
+                })
+            });
+
+            const result = await response.json();
+            if (!response.ok) {
+                showFlash(result.detail || "Unable to assign task", "error");
+                return;
+            }
+
+            showFlash("Task assigned", "success");
+            document.getElementById("task-title-global").value = "";
+            document.getElementById("task-desc-global").value = "";
+            document.getElementById("task-status-global").value = "pending";
+            await loadAdminTasks();
+        }
+
+        async function loadAdminTasks() {
+            const token = getToken();
+            const response = await fetch("/admin/tasks", {
+                headers: { "Authorization": "Bearer " + token }
+            });
+            const tasks = await response.json();
+            const container = document.getElementById("adminTasks");
+
+            if (!response.ok) {
+                container.innerHTML = `<p>${escapeHtml(tasks.detail || "Unable to load tasks")}</p>`;
+                return;
+            }
+
+            if (!tasks.length) {
+                container.innerHTML = "<p>No tasks created yet.</p>";
+                return;
+            }
+
+            container.innerHTML = tasks.map(task => {
+                const description = task.description || "No description";
+                const assignedTo = task.assigned_to_name || `User #${task.assigned_to}`;
+                const assignedBy = task.assigned_by_name || `User #${task.assigned_by}`;
+                const createdAt = new Date(task.created_at).toLocaleString();
+                return `
+                    <article class="task-card">
+                        <div class="task-card-top">
+                            <h3>${escapeHtml(task.title)}</h3>
+                            <span class="task-status ${taskStatusClass(task.status)}">${displayTaskStatus(task.status)}</span>
+                        </div>
+                        <p class="task-description">${escapeHtml(description)}</p>
+                        <div class="task-meta">
+                            <span><strong>Assigned To:</strong> ${escapeHtml(assignedTo)}</span>
+                            <span><strong>Assigned By:</strong> ${escapeHtml(assignedBy)}</span>
+                            <span><strong>Created:</strong> ${escapeHtml(createdAt)}</span>
+                        </div>
+                        <div class="task-controls">
+                            <select id="task-status-update-${task.id}" class="admin-select">
+                                ${statusOptions(task.status)}
+                            </select>
+                            <button class="btn" onclick="updateTaskStatus(${task.id})">Update Status</button>
+                        </div>
+                    </article>
+                `;
+            }).join("");
+        }
+
+        async function updateTaskStatus(taskId) {
+            const token = getToken();
+            const status = document.getElementById(`task-status-update-${taskId}`).value;
+            const response = await fetch(`/admin/tasks/${taskId}`, {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + token
+                },
+                body: JSON.stringify({ status })
+            });
+            const result = await response.json();
+
+            if (!response.ok) {
+                showFlash(result.detail || "Unable to update task", "error");
+                return;
+            }
+
+            showFlash("Task status updated", "success");
+            await loadAdminTasks();
+        }
+
+        async function createLibrary() {
+            const token = getToken();
+            const title = document.getElementById("library-title").value.trim();
+            const driveLink = document.getElementById("library-drive-link").value.trim();
+            const previewLink = document.getElementById("library-preview-link").value.trim();
+
+            if (!title || !driveLink) {
+                showFlash("Title and drive link are required", "error");
+                return;
+            }
+
+            const response = await fetch("/libraries/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + token
+                },
+                body: JSON.stringify({
+                    title,
+                    drive_link: driveLink,
+                    preview_link: previewLink || null
+                })
+            });
+
+            const result = await response.json();
+            if (!response.ok) {
+                showFlash(result.detail || "Unable to add library", "error");
+                return;
+            }
+
+            showFlash("Library added", "success");
+            document.getElementById("library-title").value = "";
+            document.getElementById("library-drive-link").value = "";
+            document.getElementById("library-preview-link").value = "";
+            await loadAdminLibraries();
+        }
+
+        async function loadAdminLibraries() {
+            const container = document.getElementById("adminLibraries");
+            const response = await fetch("/libraries/");
+            const libraries = await response.json();
+
+            if (!response.ok) {
+                container.innerHTML = `<p>${escapeHtml(libraries.detail || "Unable to load libraries")}</p>`;
+                return;
+            }
+
+            if (!libraries.length) {
+                container.innerHTML = "<p>No libraries yet.</p>";
+                return;
+            }
+
+            container.innerHTML = libraries.map(library => `
+                <article class="task-card">
+                    <div class="task-card-top">
+                        <h3>${escapeHtml(library.title)}</h3>
+                        <span class="task-status task-status-pending">Library</span>
+                    </div>
+                    <div class="admin-library-gallery">
+                        ${parsePreviewImages(library.preview_link).map(image => `
+                            <img src="${escapeHtml(image)}" class="admin-library-thumb" alt="${escapeHtml(library.title)}">
+                        `).join("")}
+                    </div>
+                    <div class="admin-row">
+                        <input type="text" id="lib-title-${library.id}" class="admin-input" value="${escapeHtml(library.title)}">
+                        <input type="text" id="lib-drive-${library.id}" class="admin-input" value="${escapeHtml(library.drive_link)}">
+                        <input type="text" id="lib-preview-${library.id}" class="admin-input" value="${escapeHtml(library.preview_link || "")}">
+                        <div class="admin-actions">
+                            <a class="btn" href="${escapeHtml(library.drive_link)}" target="_blank" rel="noopener noreferrer">Open Drive</a>
+                            <button class="btn" onclick="updateLibrary(${library.id})">Update</button>
+                            <button class="btn" onclick="deleteLibrary(${library.id})">Delete</button>
+                        </div>
+                    </div>
+                </article>
+            `).join("");
+        }
+
+        async function updateLibrary(libraryId) {
+            const token = getToken();
+            const title = document.getElementById(`lib-title-${libraryId}`).value.trim();
+            const driveLink = document.getElementById(`lib-drive-${libraryId}`).value.trim();
+            const previewLink = document.getElementById(`lib-preview-${libraryId}`).value.trim();
+
+            if (!title || !driveLink) {
+                showFlash("Title and drive link are required", "error");
+                return;
+            }
+
+            const response = await fetch(`/libraries/${libraryId}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + token
+                },
+                body: JSON.stringify({
+                    title,
+                    drive_link: driveLink,
+                    preview_link: previewLink || null
+                })
+            });
+
+            const result = await response.json();
+            if (!response.ok) {
+                showFlash(result.detail || "Unable to update library", "error");
+                return;
+            }
+
+            showFlash("Library updated", "success");
+            await loadAdminLibraries();
+        }
+
+        async function deleteLibrary(libraryId) {
+            const token = getToken();
+            if (!confirm("Delete this library entry?")) return;
+
+            const response = await fetch(`/libraries/${libraryId}`, {
+                method: "DELETE",
+                headers: {
+                    "Authorization": "Bearer " + token
+                }
+            });
+            const result = await response.json();
+
+            if (!response.ok) {
+                showFlash(result.detail || "Unable to delete library", "error");
+                return;
+            }
+
+            showFlash("Library deleted", "success");
+            await loadAdminLibraries();
+        }
+
+        document.addEventListener("DOMContentLoaded", async () => {
+            const token = getToken();
+            if (!token) {
+                showFlash("Login first", "error");
+                setTimeout(() => {
+                    window.location.href = "/login";
+                }, 900);
+                return;
+            }
+
+            const taskSearch = document.getElementById("task-user-search");
+            if (taskSearch) {
+                taskSearch.addEventListener("input", function () {
+                    renderTaskAssignees(this.value);
+                });
+            }
+
+            await loadAllUsers();
+            await loadAdminTasks();
+            await loadAdminLibraries();
+        });
+    </script>
+</body>
+</html>

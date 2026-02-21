@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile | Vyto Verse</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-section">
+            <img src="/static/images/logo.png" class="logo">
+            <h2>Vyto Verse</h2>
+        </div>
+        <nav id="nav-links">
+            <a href="/">Home</a>
+            <a href="/team">Team</a>
+            <a href="/library">Library</a>
+            <a href="/about">About</a>
+            <a href="/tasks">Task</a>
+            <a href="/login" id="auth-btn" class="btn">Login / Signup</a>
+        </nav>
+        <div class="menu-toggle" onclick="toggleMenu()">☰</div>
+    </header>
+
+    <section class="team-section profile-section">
+        <h1 class="section-title">My Profile</h1>
+        <div id="taskNotification"></div>
+
+        <div id="profileData" class="profile-main">
+            <div class="profile-image-block">
+                <img id="profileImagePreview" class="profile-main-image" src="/static/images/founder.jpg" alt="Profile Image">
+                <form id="profileImageForm" class="profile-inline-form">
+                    <input
+                        type="file"
+                        id="profileImageFile"
+                        class="profile-input"
+                        accept="image/*"
+                        required
+                    >
+                    <button type="submit" class="btn">Upload Image</button>
+                </form>
+                <p class="profile-help-text">Choose image from your device. This image will also show on Team page.</p>
+            </div>
+
+            <div class="profile-details-block">
+                <h2 id="profileNameText">-</h2>
+                <p class="profile-detail-line"><strong>Email:</strong> <span id="profileEmailText">-</span></p>
+                <p class="profile-detail-line"><strong>Phone:</strong> <span id="profilePhoneText">-</span></p>
+                <p class="profile-detail-line"><strong>Role:</strong> <span id="profileRoleText">-</span></p>
+                <p class="profile-detail-line"><strong>Level:</strong> <span id="profileLevelText">-</span></p>
+            </div>
+
+            <section class="profile-task-section">
+                <h3>My Assigned Tasks</h3>
+                <div id="profileAssignedTasks" class="profile-task-list"></div>
+            </section>
+
+            <form id="editProfileForm" class="profile-edit-form">
+                <h3>Edit Details</h3>
+                <input type="text" id="editNameInput" class="profile-input" placeholder="Edit name" required>
+                <input type="email" id="editEmailInput" class="profile-input" placeholder="Edit contact email" required>
+                <input type="text" id="editPhoneInput" class="profile-input" placeholder="Edit phone number" required>
+                <button type="submit" class="btn">Save Profile</button>
+            </form>
+
+            <form id="changePasswordForm" class="profile-edit-form">
+                <h3>Change Password</h3>
+                <input type="password" id="oldPasswordInput" class="profile-input" placeholder="Current password" required>
+                <input type="password" id="newPasswordInput" class="profile-input" placeholder="New password" required>
+                <button type="submit" class="btn">Update Password</button>
+            </form>
+
+            <div class="profile-logout-wrap">
+                <button type="button" class="btn" onclick="logout()">Logout</button>
+            </div>
+        </div>
+    </section>
+
+    <script src="/static/js/script.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", loadProfile);
+    </script>
+</body>
+</html>

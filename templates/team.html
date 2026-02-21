@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Team | Vyto Verse</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+
+<body>
+
+    <header>
+        <div class="logo-section">
+            <img src="/static/images/logo.png" class="logo">
+            <h2>Vyto Verse</h2>
+        </div>
+
+        <nav id="nav-links">
+            <a href="/">Home</a>
+            <a href="/team">Team</a>
+            <a href="/library">Library</a>
+            <a href="/about">About</a>
+            <a href="/tasks">Task</a>
+
+            <a href="/login" id="auth-btn" class="btn">Login / Signup</a>
+        </nav>
+
+        <div class="menu-toggle" onclick="toggleMenu()">☰</div>
+    </header>
+
+    <!-- PAGE START -->
+
+    <section class="team-section">
+
+        <h1 class="section-title">Our Leadership</h1>
+
+        <h2 class="sub-title">President</h2>
+        <div id="president-container" class="card-grid"></div>
+
+        <h2 class="sub-title">Vice President</h2>
+        <div id="vice-container" class="card-grid"></div>
+
+        <div id="past-wrapper" style="display:none;">
+            <h2 class="sub-title">Past Presidents</h2>
+            <div id="past-container" class="card-grid"></div>
+        </div>
+
+    </section>
+
+    <!-- Members Section -->
+
+    <section class="members-section">
+
+        <h1 class="section-title">Members</h1>
+
+        <input type="text" id="searchInput" placeholder="Search by name..." class="search-box">
+
+        <div id="members-container"></div>
+
+    </section>
+
+    <!-- Footer -->
+
+    <footer>
+        <div class="footer-left">
+            <h3>Vyto Verse</h3>
+            <p>Innovation. Creativity. Leadership.</p>
+        </div>
+
+        <div class="footer-middle">
+            <a href="/">Home</a>
+            <a href="/team">Team</a>
+            <a href="/library">Library</a>
+            <a href="/about">About</a>
+            <a href="/tasks">Task</a>
+        </div>
+
+        <div class="footer-right">
+            <a href="#">Instagram</a>
+            <a href="#">Email</a>
+        </div>
+    </footer>
+
+    <script src="/static/js/script.js"></script>
+</body>
+
+</html>

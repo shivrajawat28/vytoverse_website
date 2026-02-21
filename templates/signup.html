@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Signup | Vyto Verse</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="auth-page">
+    <header>
+        <div class="logo-section">
+            <img src="/static/images/logo.png" class="logo" alt="Vyto Verse Logo">
+            <h2>Vyto Verse</h2>
+        </div>
+        <nav id="nav-links">
+            <a href="/">Home</a>
+            <a href="/team">Team</a>
+            <a href="/library">Library</a>
+            <a href="/about">About</a>
+            <a href="/tasks">Task</a>
+            <a href="/login" class="btn">Login</a>
+        </nav>
+        <div class="menu-toggle" onclick="toggleMenu()">☰</div>
+    </header>
+
+    <main class="auth-shell">
+        <section class="auth-showcase">
+            <p class="auth-pill">Join Vyto Verse</p>
+            <h1>Create your account and get listed in the community.</h1>
+            <p>Build your profile, get team visibility, receive tasks, and access all shared libraries.</p>
+            <div class="auth-highlights">
+                <article>
+                    <h3>Team Access</h3>
+                    <p>Become discoverable by role and domain in the team section.</p>
+                </article>
+                <article>
+                    <h3>Growth Journey</h3>
+                    <p>Your level and responsibilities evolve with your contributions.</p>
+                </article>
+            </div>
+        </section>
+
+        <section class="auth-form-card">
+            <h2>Signup</h2>
+            <p class="auth-subtext">Fill details to create your new account.</p>
+            <form class="auth-form" onsubmit="signupUser(event)">
+                <label for="name">Full Name</label>
+                <input type="text" id="name" placeholder="Your name" required>
+
+                <label for="email">Email</label>
+                <input type="email" id="email" placeholder="you@example.com" required>
+
+                <label for="phone">Phone</label>
+                <input type="text" id="phone" placeholder="10-digit phone" required>
+
+                <label for="password">Password</label>
+                <input type="password" id="password" placeholder="Create password" required>
+
+                <button type="submit" class="btn auth-submit">Signup</button>
+            </form>
+            <p class="auth-switch">Already have an account? <a href="/login">Login</a></p>
+        </section>
+    </main>
+
+    <script src="/static/js/script.js"></script>
+</body>
+</html>
