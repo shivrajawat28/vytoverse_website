@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap } from 'lucide-react';
+import Logo from '@/components/Logo';
 
 export default function PageLoader() {
   const [visible, setVisible] = useState(true);
@@ -41,9 +41,9 @@ export default function PageLoader() {
               <motion.div
                 animate={{ scale: [1, 1.08, 1] }}
                 transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-                className="w-14 h-14 rounded-xl bg-gradient-to-br from-vyto-cyan to-vyto-blue flex items-center justify-center shadow-lg shadow-vyto-cyan/20"
+                className="w-16 h-16 rounded-xl overflow-hidden shadow-lg shadow-vyto-cyan/20 bg-vyto-surface"
               >
-                <Zap className="w-7 h-7 text-white" />
+                <Logo size={64} className="w-full h-full" />
               </motion.div>
             </div>
           </div>
@@ -55,10 +55,6 @@ export default function PageLoader() {
             transition={{ delay: 0.3, duration: 0.6 }}
             className="text-center"
           >
-            <h1 className="text-2xl font-bold tracking-tight mb-2">
-              <span className="text-white">Vyto</span>
-              <span className="text-vyto-cyan">Verse</span>
-            </h1>
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: [0, 1, 0.5, 1] }}

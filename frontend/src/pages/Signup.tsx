@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Mail, Lock, Eye, EyeOff, Zap, ArrowRight, User } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, User } from 'lucide-react';
+import Logo from '@/components/Logo';
 import { useAuth } from '@/context/AuthContext';
 import toast from 'react-hot-toast';
 
@@ -61,8 +62,8 @@ export default function Signup() {
 
           {/* Header */}
           <div className="text-center mb-8">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-vyto-cyan to-vyto-blue flex items-center justify-center mx-auto mb-4 shadow-lg shadow-vyto-cyan/20">
-              <Zap className="w-6 h-6 text-white" />
+            <div className="mx-auto mb-4">
+              <Logo size={48} className="rounded-xl" />
             </div>
             <h1 className="text-2xl font-bold text-white">Join VytoVerse</h1>
             <p className="text-sm text-vyto-text-muted mt-1">Create your account and start building</p>

@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
-import { Zap, Code2, Globe, AtSign, Mail, ArrowUpRight } from 'lucide-react';
+import { Code2, Globe, AtSign, Mail, ArrowUpRight } from 'lucide-react';
+import Logo from '@/components/Logo';
 
 export default function Footer() {
   return (
@@ -8,14 +9,8 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
           {/* Brand */}
           <div className="lg:col-span-1">
-            <Link to="/" className="flex items-center gap-2 mb-4">
-              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-vyto-cyan to-vyto-blue flex items-center justify-center">
-                <Zap className="w-5 h-5 text-white" />
-              </div>
-              <span className="text-xl font-bold">
-                <span className="text-white">Vyto</span>
-                <span className="text-vyto-cyan">Verse</span>
-              </span>
+            <Link to="/" className="flex items-center gap-2.5 mb-4">
+              <Logo size={36} className="rounded-lg" />
             </Link>
             <p className="text-sm text-vyto-text-muted leading-relaxed mb-6">
               Where Innovation Meets Code. A futuristic technology club platform for builders, creators, and innovators.
