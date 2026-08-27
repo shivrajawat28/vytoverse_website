@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -21,11 +21,13 @@ import {
   ExternalLink,
   Edit3,
   Shield,
+  Menu,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { adminAPI, statsAPI } from '@/services/api';
 import { hasAdminAccess, roleDisplayLabel, type User, type Event, type LibraryResource, type Stats, type Task, type Poster, type ImportantLink } from '@/types';
 import { getAssetUrl } from '@/utils/assets';
+import Logo from '@/components/Logo';
 import toast from 'react-hot-toast';
 
 type Tab = 'overview' | 'users' | 'tasks' | 'team' | 'events' | 'posters' | 'important-links' | 'library';
@@ -35,6 +37,17 @@ const TEAM_ROLE_SUGGESTIONS = [
   'Technical Lead', 'Frontend Lead', 'Backend Lead', 'AI/ML Lead',
   'Cybersecurity Lead', 'Design Lead', 'Event Lead', 'Community Lead',
   'Content Lead', 'PR Lead', 'Member',
+];
+
+const tabs: { key: Tab; label: string; icon: React.ElementType }[] = [
+  { key: 'overview', label: 'Overview', icon: LayoutDashboard },
+  { key: 'users', label: 'Users', icon: Users },
+  { key: 'tasks', label: 'Tasks', icon: CheckSquare },
+  { key: 'team', label: 'Team', icon: Crown },
+  { key: 'events', label: 'Events', icon: Calendar },
+  { key: 'posters', label: 'Posters', icon: Image },
+  { key: 'important-links', label: 'Links', icon: Link2 },
+  { key: 'library', label: 'Library', icon: BookOpen },
 ];
 
 export default function Admin() {
@@ -50,6 +63,9 @@ export default function Admin() {
   const [importantLinks, setImportantLinks] = useState<ImportantLink[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+
+  // Mobile drawer
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   // Modal states
   const [showEventModal, setShowEventModal] = useState(false);
@@ -96,6 +112,18 @@ export default function Admin() {
   const [resourceForm, setResourceForm] = useState<Record<string, string>>({
     title: '', description: '', category: '', resource_type: 'pdf', external_url: '', author: '',
   });
+
+  // Close drawer on tab change
+  const switchTab = useCallback((tab: Tab) => {
+    setActiveTab(tab);
+    setDrawerOpen(false);
+  }, []);
+
+  // Lock body scroll when drawer open
+  useEffect(() => {
+    document.body.style.overflow = drawerOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [drawerOpen]);
 
   useEffect(() => {
     if (!isAdmin) { navigate('/'); return; }
@@ -295,17 +323,6 @@ export default function Admin() {
     catch { toast.error('Failed to delete link'); }
   };
 
-  const tabs: { key: Tab; label: string; icon: React.ElementType }[] = [
-    { key: 'overview', label: 'Overview', icon: LayoutDashboard },
-    { key: 'users', label: 'Users', icon: Users },
-    { key: 'tasks', label: 'Tasks', icon: CheckSquare },
-    { key: 'team', label: 'Team', icon: Crown },
-    { key: 'events', label: 'Events', icon: Calendar },
-    { key: 'posters', label: 'Posters', icon: Image },
-    { key: 'important-links', label: 'Links', icon: Link2 },
-    { key: 'library', label: 'Library', icon: BookOpen },
-  ];
-
   const teamMembers = users.filter(u => u.team_membership === 1);
   const filteredEvents = events.filter(e => {
     if (eventFilter === 'upcoming') return e.status === 'upcoming' || e.status === 'ongoing';
@@ -328,21 +345,105 @@ export default function Admin() {
   if (!isAdmin) return null;
 
   return (
-    <div className="relative pt-24 min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex flex-col lg:flex-row gap-8">
-          {/* Sidebar */}
-          <aside className="lg:w-64 shrink-0">
+    <div className="relative pt-24 min-h-screen overflow-x-hidden">
+      {/* ─── Mobile Admin Header ─── */}
+      <div className="lg:hidden fixed top-16 left-0 right-0 z-40 bg-vyto-bg/90 backdrop-blur-xl border-b border-vyto-border/60">
+        <div className="flex items-center justify-between px-4 h-14">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setDrawerOpen(true)}
+              className="p-2 rounded-lg text-vyto-text-secondary hover:text-white hover:bg-white/5 transition-all"
+              aria-label="Open admin menu"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <Logo variant="wordmark" className="h-7 w-auto max-w-[140px]" />
+          </div>
+          <span className="text-xs font-medium text-vyto-cyan bg-vyto-cyan/10 px-2.5 py-1 rounded-md border border-vyto-cyan/20">
+            {tabs.find(t => t.key === activeTab)?.label}
+          </span>
+        </div>
+      </div>
+
+      {/* ─── Mobile Drawer Backdrop ─── */}
+      <AnimatePresence>
+        {drawerOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm lg:hidden"
+            onClick={() => setDrawerOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* ─── Mobile Drawer ─── */}
+      <AnimatePresence>
+        {drawerOpen && (
+          <motion.div
+            initial={{ x: '-100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '-100%' }}
+            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+            className="fixed top-0 left-0 bottom-0 z-50 w-72 max-w-[85vw] bg-vyto-bg-2 border-r border-vyto-border shadow-2xl shadow-black/40 flex flex-col lg:hidden"
+          >
+            {/* Drawer header */}
+            <div className="flex items-center justify-between p-4 border-b border-vyto-border">
+              <Logo variant="wordmark" className="h-8 w-auto max-w-[160px]" />
+              <button
+                onClick={() => setDrawerOpen(false)}
+                className="p-2 rounded-lg text-vyto-text-muted hover:text-white hover:bg-white/5 transition-all"
+                aria-label="Close menu"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Drawer nav */}
+            <nav className="flex-1 overflow-y-auto p-3 space-y-1">
+              {tabs.map(({ key, label, icon: Icon }) => (
+                <button
+                  key={key}
+                  onClick={() => switchTab(key)}
+                  className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                    activeTab === key
+                      ? 'bg-vyto-cyan/10 text-vyto-cyan border border-vyto-cyan/20 shadow-sm'
+                      : 'text-vyto-text-muted hover:text-white hover:bg-white/5 border border-transparent'
+                  }`}
+                >
+                  <Icon className="w-5 h-5 shrink-0" />
+                  {label}
+                </button>
+              ))}
+            </nav>
+
+            {/* Drawer footer */}
+            <div className="p-4 border-t border-vyto-border">
+              <p className="text-xs text-vyto-text-muted text-center">Admin Panel</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── Main Content ─── */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
+          {/* Desktop Sidebar */}
+          <aside className="hidden lg:block lg:w-64 shrink-0">
             <div className="glass-card p-4 lg:sticky lg:top-28">
-              <h2 className="text-lg font-bold text-white mb-4 px-2 hidden lg:block">Admin Panel</h2>
-              <div className="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible">
+              <div className="flex items-center gap-2.5 mb-4 px-2">
+                <Logo variant="wordmark" className="h-6 w-auto max-w-[120px]" />
+              </div>
+              <nav className="flex flex-col gap-1">
                 {tabs.map(({ key, label, icon: Icon }) => (
-                  <button key={key} onClick={() => setActiveTab(key)}
+                  <button key={key} onClick={() => switchTab(key)}
                     className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${activeTab === key ? 'bg-vyto-cyan/10 text-vyto-cyan shadow-sm' : 'text-vyto-text-muted hover:text-white hover:bg-white/5'}`}>
                     <Icon className="w-4 h-4" /> {label}
                   </button>
                 ))}
-              </div>
+              </nav>
             </div>
           </aside>
 
@@ -351,8 +452,8 @@ export default function Admin() {
             {/* ─── Overview ─── */}
             {activeTab === 'overview' && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                <h1 className="text-2xl font-bold text-white mb-6">Dashboard Overview</h1>
-                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+                <h1 className="text-xl sm:text-2xl font-bold text-white mb-5 sm:mb-6">Dashboard Overview</h1>
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-6 sm:mb-8">
                   {[
                     { label: 'Total Users', value: stats?.total_users || 0, color: 'text-vyto-cyan', icon: Users },
                     { label: 'Team Members', value: stats?.team_members || teamMembers.length, color: 'text-vyto-blue', icon: Crown },
@@ -361,14 +462,14 @@ export default function Admin() {
                     { label: 'Active Posters', value: stats?.active_posters || 0, color: 'text-yellow-400', icon: Image },
                     { label: 'Important Links', value: stats?.total_links || 0, color: 'text-pink-400', icon: Link2 },
                   ].map(({ label, value, color, icon: Icon }) => (
-                    <motion.div key={label} whileHover={{ y: -2, transition: { duration: 0.2 } }} className="glass-card p-5">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-vyto-surface flex items-center justify-center">
-                          <Icon className={`w-5 h-5 ${color}`} />
+                    <motion.div key={label} whileHover={{ y: -2, transition: { duration: 0.2 } }} className="glass-card p-3 sm:p-5">
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-vyto-surface flex items-center justify-center shrink-0">
+                          <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${color}`} />
                         </div>
-                        <div>
-                          <p className="text-sm text-vyto-text-muted">{label}</p>
-                          <p className={`text-2xl font-bold ${color}`}>{value}</p>
+                        <div className="min-w-0">
+                          <p className="text-xs sm:text-sm text-vyto-text-muted truncate">{label}</p>
+                          <p className={`text-lg sm:text-2xl font-bold ${color}`}>{value}</p>
                         </div>
                       </div>
                     </motion.div>
@@ -380,20 +481,24 @@ export default function Admin() {
             {/* ─── Users Tab ─── */}
             {activeTab === 'users' && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                <div className="flex items-center justify-between mb-6"><h1 className="text-2xl font-bold text-white">User Management</h1></div>
+                <div className="flex items-center justify-between mb-5 sm:mb-6">
+                  <h1 className="text-xl sm:text-2xl font-bold text-white">User Management</h1>
+                </div>
                 <div className="relative mb-4">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-vyto-text-muted" />
                   <input type="text" placeholder="Search users..." value={search} onChange={e => setSearch(e.target.value)} className="input-field !pl-10" />
                 </div>
-                <div className="glass-card overflow-hidden">
+
+                {/* Desktop Table */}
+                <div className="glass-card overflow-hidden hidden md:block">
                   <div className="overflow-x-auto">
                     <table className="w-full">
                       <thead><tr className="border-b border-vyto-border">
                         <th className="text-left px-5 py-3 text-xs font-semibold text-vyto-text-muted uppercase">User</th>
-                        <th className="text-left px-5 py-3 text-xs font-semibold text-vyto-text-muted uppercase hidden sm:table-cell">Role</th>
-                        <th className="text-left px-5 py-3 text-xs font-semibold text-vyto-text-muted uppercase hidden md:table-cell">Team</th>
-                        <th className="text-left px-5 py-3 text-xs font-semibold text-vyto-text-muted uppercase hidden lg:table-cell">Designation</th>
-                        <th className="text-left px-5 py-3 text-xs font-semibold text-vyto-text-muted uppercase hidden md:table-cell">Stars</th>
+                        <th className="text-left px-5 py-3 text-xs font-semibold text-vyto-text-muted uppercase">Role</th>
+                        <th className="text-left px-5 py-3 text-xs font-semibold text-vyto-text-muted uppercase">Team</th>
+                        <th className="text-left px-5 py-3 text-xs font-semibold text-vyto-text-muted uppercase">Designation</th>
+                        <th className="text-left px-5 py-3 text-xs font-semibold text-vyto-text-muted uppercase">Stars</th>
                         <th className="text-right px-5 py-3 text-xs font-semibold text-vyto-text-muted uppercase">Actions</th>
                       </tr></thead>
                       <tbody>
@@ -410,18 +515,18 @@ export default function Admin() {
                                 </div>
                               </div>
                             </td>
-                            <td className="px-5 py-4 hidden sm:table-cell">
+                            <td className="px-5 py-4">
                               <span className={`px-2 py-1 rounded-md text-xs font-medium ${u.role === 'president' ? 'bg-yellow-500/10 text-yellow-400' : u.role === 'vice_president' ? 'bg-purple-500/10 text-purple-400' : u.role === 'admin' ? 'bg-vyto-violet/10 text-vyto-violet' : 'bg-vyto-surface text-vyto-text-muted'}`}>{roleDisplayLabel(u.role)}</span>
                             </td>
-                            <td className="px-5 py-4 hidden md:table-cell">
+                            <td className="px-5 py-4">
                               <button onClick={() => handleQuickToggleTeam(u)} className={`px-2 py-1 rounded-md text-xs font-medium transition-all ${u.team_membership === 1 ? 'bg-vyto-cyan/10 text-vyto-cyan border border-vyto-cyan/20 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20' : 'bg-vyto-surface text-vyto-text-muted border border-vyto-border hover:bg-vyto-cyan/10 hover:text-vyto-cyan hover:border-vyto-cyan/20'}`}>
                                 {u.team_membership === 1 ? 'Team ✓' : 'Add'}
                               </button>
                             </td>
-                            <td className="px-5 py-4 hidden lg:table-cell">
+                            <td className="px-5 py-4">
                               {u.team_role ? <span className="text-xs text-vyto-cyan font-medium">{u.team_role}</span> : <span className="text-xs text-vyto-text-muted">—</span>}
                             </td>
-                            <td className="px-5 py-4 hidden md:table-cell">
+                            <td className="px-5 py-4">
                               <span className="text-sm text-yellow-400 flex items-center gap-1"><Star className="w-3.5 h-3.5 fill-yellow-400" />{u.stars}</span>
                             </td>
                             <td className="px-5 py-4 text-right">
@@ -437,33 +542,66 @@ export default function Admin() {
                     </table>
                   </div>
                 </div>
+
+                {/* Mobile User Cards */}
+                <div className="md:hidden space-y-3">
+                  {users.filter(u => u.name.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase())).map(u => (
+                    <div key={u.id} className="glass-card p-4">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-vyto-cyan/30 to-vyto-violet/30 flex items-center justify-center text-sm font-bold text-white shrink-0 overflow-hidden">
+                          {u.profile_image ? <img src={getAssetUrl(u.profile_image) || u.profile_image} alt="" className="w-full h-full rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} /> : u.name.charAt(0)}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-white truncate">{u.name}</p>
+                          <p className="text-xs text-vyto-text-muted truncate">{u.email}</p>
+                        </div>
+                        <span className={`px-2 py-1 rounded-md text-xs font-medium shrink-0 ${u.role === 'president' ? 'bg-yellow-500/10 text-yellow-400' : u.role === 'vice_president' ? 'bg-purple-500/10 text-purple-400' : u.role === 'admin' ? 'bg-vyto-violet/10 text-vyto-violet' : 'bg-vyto-surface text-vyto-text-muted'}`}>{roleDisplayLabel(u.role)}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <button onClick={() => handleQuickToggleTeam(u)} className={`px-2 py-1 rounded-md text-xs font-medium transition-all ${u.team_membership === 1 ? 'bg-vyto-cyan/10 text-vyto-cyan border border-vyto-cyan/20' : 'bg-vyto-surface text-vyto-text-muted border border-vyto-border'}`}>
+                            {u.team_membership === 1 ? `Team ✓${u.team_role ? ` · ${u.team_role}` : ''}` : 'Add to Team'}
+                          </button>
+                          <span className="text-xs text-yellow-400 flex items-center gap-1"><Star className="w-3 h-3 fill-yellow-400" />{u.stars}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => openRoleModal(u)} className="p-2 rounded-lg text-vyto-text-muted hover:text-vyto-violet hover:bg-vyto-violet/10 transition-all" title="Change role"><Shield className="w-4 h-4" /></button>
+                          <button onClick={() => openTeamModal(u)} className="p-2 rounded-lg text-vyto-text-muted hover:text-vyto-cyan hover:bg-vyto-cyan/10 transition-all" title="Manage team"><Settings className="w-4 h-4" /></button>
+                          <button onClick={() => { setSelectedUser(u); setStarCount(u.stars); setShowStarsModal(true); }} className="p-2 rounded-lg text-vyto-text-muted hover:text-yellow-400 hover:bg-yellow-400/10 transition-all" title="Assign stars"><Star className="w-4 h-4" /></button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </motion.div>
             )}
 
             {/* ─── Tasks Tab ─── */}
             {activeTab === 'tasks' && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                <div className="flex items-center justify-between mb-6">
-                  <h1 className="text-2xl font-bold text-white">Task Management</h1>
-                  <button onClick={openCreateTask} className="btn-primary text-sm !py-2 !px-4"><Plus className="w-4 h-4" /> Assign Task</button>
+                <div className="flex items-center justify-between mb-5 sm:mb-6">
+                  <h1 className="text-xl sm:text-2xl font-bold text-white">Task Management</h1>
+                  <button onClick={openCreateTask} className="btn-primary text-sm !py-2 !px-3 sm:!px-4"><Plus className="w-4 h-4" /> <span className="hidden sm:inline">Assign </span>Task</button>
                 </div>
                 {tasks.length === 0 ? (
-                  <div className="glass-card p-12 text-center"><CheckSquare className="w-12 h-12 text-vyto-text-muted/30 mx-auto mb-4" /><h3 className="text-lg font-semibold text-white mb-2">No tasks yet</h3><p className="text-vyto-text-muted text-sm">Assign tasks to users from here.</p></div>
+                  <div className="glass-card p-8 sm:p-12 text-center"><CheckSquare className="w-12 h-12 text-vyto-text-muted/30 mx-auto mb-4" /><h3 className="text-lg font-semibold text-white mb-2">No tasks yet</h3><p className="text-vyto-text-muted text-sm">Assign tasks to users from here.</p></div>
                 ) : (
                   <div className="space-y-3">
                     {tasks.map(t => (
-                      <div key={t.id} className="glass-card p-5 flex items-center justify-between gap-4">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="text-base font-semibold text-white truncate">{t.title}</h3>
-                            <span className={`px-2 py-0.5 rounded text-xs font-medium ${taskStatusColors[t.status] || ''}`}>{t.status.replace('_', ' ')}</span>
-                            <span className={`text-xs font-medium ${taskPriorityColors[t.priority] || ''}`}>{t.priority}</span>
+                      <div key={t.id} className="glass-card p-4 sm:p-5">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-1">
+                              <h3 className="text-sm sm:text-base font-semibold text-white truncate">{t.title}</h3>
+                              <span className={`px-2 py-0.5 rounded text-xs font-medium ${taskStatusColors[t.status] || ''}`}>{t.status.replace('_', ' ')}</span>
+                              <span className={`text-xs font-medium ${taskPriorityColors[t.priority] || ''}`}>{t.priority}</span>
+                            </div>
+                            <p className="text-xs sm:text-sm text-vyto-text-muted">Assigned to: {t.assigned_user_name || 'Unknown'}{t.due_date ? ` · Due: ${new Date(t.due_date).toLocaleDateString()}` : ''}</p>
                           </div>
-                          <p className="text-sm text-vyto-text-muted">Assigned to: {t.assigned_user_name || 'Unknown'}{t.due_date ? ` · Due: ${new Date(t.due_date).toLocaleDateString()}` : ''}</p>
-                        </div>
-                        <div className="flex gap-2 shrink-0">
-                          <button onClick={() => openEditTask(t)} className="p-2 rounded-lg text-vyto-text-muted hover:text-vyto-cyan hover:bg-vyto-cyan/10 transition-all" title="Edit"><Edit3 className="w-4 h-4" /></button>
-                          <button onClick={() => handleDeleteTask(t.id)} className="p-2 rounded-lg text-red-400 hover:bg-red-400/10 transition-all" title="Delete"><Trash2 className="w-4 h-4" /></button>
+                          <div className="flex gap-1 sm:gap-2 shrink-0">
+                            <button onClick={() => openEditTask(t)} className="p-2 rounded-lg text-vyto-text-muted hover:text-vyto-cyan hover:bg-vyto-cyan/10 transition-all" title="Edit"><Edit3 className="w-4 h-4" /></button>
+                            <button onClick={() => handleDeleteTask(t.id)} className="p-2 rounded-lg text-red-400 hover:bg-red-400/10 transition-all" title="Delete"><Trash2 className="w-4 h-4" /></button>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -475,18 +613,18 @@ export default function Admin() {
             {/* ─── Team Tab ─── */}
             {activeTab === 'team' && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                <div className="flex items-center justify-between mb-6">
-                  <h1 className="text-2xl font-bold text-white">Team Management</h1>
+                <div className="flex items-center justify-between mb-5 sm:mb-6">
+                  <h1 className="text-xl sm:text-2xl font-bold text-white">Team Management</h1>
                   <span className="text-sm text-vyto-text-muted">{teamMembers.length} members</span>
                 </div>
                 {teamMembers.length === 0 ? (
-                  <div className="glass-card p-12 text-center"><Crown className="w-12 h-12 text-vyto-text-muted/30 mx-auto mb-4" /><h3 className="text-lg font-semibold text-white mb-2">No team members yet</h3><p className="text-vyto-text-muted text-sm">Go to the Users tab and click the gear icon to manage team membership.</p></div>
+                  <div className="glass-card p-8 sm:p-12 text-center"><Crown className="w-12 h-12 text-vyto-text-muted/30 mx-auto mb-4" /><h3 className="text-lg font-semibold text-white mb-2">No team members yet</h3><p className="text-vyto-text-muted text-sm">Go to the Users tab and click the gear icon to manage team membership.</p></div>
                 ) : (
-                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                     {teamMembers.map(u => (
-                      <motion.div key={u.id} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} whileHover={{ y: -2 }} className="glass-card p-5 group">
+                      <motion.div key={u.id} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} whileHover={{ y: -2 }} className="glass-card p-4 sm:p-5 group">
                         <div className="flex items-center gap-3 mb-3">
-                          <div className="w-11 h-11 rounded-full bg-gradient-to-br from-vyto-cyan/30 to-vyto-violet/30 flex items-center justify-center text-sm font-bold text-white shrink-0 border border-vyto-border group-hover:border-vyto-cyan/30 transition-all overflow-hidden">
+                          <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-gradient-to-br from-vyto-cyan/30 to-vyto-violet/30 flex items-center justify-center text-sm font-bold text-white shrink-0 border border-vyto-border group-hover:border-vyto-cyan/30 transition-all overflow-hidden">
                             {u.profile_image ? <img src={getAssetUrl(u.profile_image) || u.profile_image} alt="" className="w-full h-full rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} /> : u.name.charAt(0)}
                           </div>
                           <div className="min-w-0 flex-1">
@@ -497,8 +635,8 @@ export default function Admin() {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-1.5"><Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" /><span className="text-xs text-yellow-400 font-medium">{u.stars}</span></div>
                           <div className="flex items-center gap-2">
-                            <button onClick={() => openTeamModal(u)} className="text-xs text-vyto-text-muted hover:text-vyto-cyan flex items-center gap-1 transition-colors"><Settings className="w-3.5 h-3.5" /></button>
-                            <button onClick={() => handleQuickToggleTeam(u)} className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1 transition-colors"><UserMinus className="w-3.5 h-3.5" /> Remove</button>
+                            <button onClick={() => openTeamModal(u)} className="p-1.5 rounded-lg text-vyto-text-muted hover:text-vyto-cyan transition-colors"><Settings className="w-3.5 h-3.5" /></button>
+                            <button onClick={() => handleQuickToggleTeam(u)} className="p-1.5 rounded-lg text-red-400 hover:text-red-300 transition-colors"><UserMinus className="w-3.5 h-3.5" /></button>
                           </div>
                         </div>
                       </motion.div>
@@ -511,32 +649,34 @@ export default function Admin() {
             {/* ─── Events Tab ─── */}
             {activeTab === 'events' && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                <div className="flex items-center justify-between mb-6">
-                  <h1 className="text-2xl font-bold text-white">Event Management</h1>
-                  <button onClick={() => { resetEventForm(); setShowEventModal(true); }} className="btn-primary text-sm !py-2 !px-4"><Plus className="w-4 h-4" /> Add Event</button>
+                <div className="flex items-center justify-between mb-5 sm:mb-6">
+                  <h1 className="text-xl sm:text-2xl font-bold text-white">Event Management</h1>
+                  <button onClick={() => { resetEventForm(); setShowEventModal(true); }} className="btn-primary text-sm !py-2 !px-3 sm:!px-4"><Plus className="w-4 h-4" /> <span className="hidden sm:inline">Add </span>Event</button>
                 </div>
-                <div className="flex gap-2 mb-4">
+                <div className="flex flex-wrap gap-2 mb-4">
                   {(['all', 'upcoming', 'past'] as const).map(f => (
-                    <button key={f} onClick={() => setEventFilter(f)} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${eventFilter === f ? 'bg-vyto-cyan/10 text-vyto-cyan' : 'text-vyto-text-muted hover:text-white'}`}>
+                    <button key={f} onClick={() => setEventFilter(f)} className={`px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-all ${eventFilter === f ? 'bg-vyto-cyan/10 text-vyto-cyan' : 'text-vyto-text-muted hover:text-white'}`}>
                       {f.charAt(0).toUpperCase() + f.slice(1)} ({events.filter(e => f === 'all' ? true : f === 'upcoming' ? (e.status === 'upcoming' || e.status === 'ongoing') : (e.status === 'completed' || new Date(e.date) < new Date())).length})
                     </button>
                   ))}
                 </div>
                 <div className="space-y-3">
                   {filteredEvents.map(e => (
-                    <div key={e.id} className="glass-card p-5 flex items-center justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-base font-semibold text-white truncate">{e.title}</h3>
-                        <p className="text-sm text-vyto-text-muted">{new Date(e.date).toLocaleDateString()} · {e.location || 'TBA'}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${e.status === 'upcoming' ? 'bg-vyto-cyan/10 text-vyto-cyan' : e.status === 'completed' ? 'bg-vyto-text-muted/10 text-vyto-text-muted' : e.status === 'ongoing' ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>{e.status}</span>
-                          {e.registration_url && <a href={e.registration_url} target="_blank" rel="noopener noreferrer" className="text-xs text-vyto-cyan hover:underline flex items-center gap-1">Register <ExternalLink className="w-3 h-3" /></a>}
-                          {e.poster_url && <a href={e.poster_url} target="_blank" rel="noopener noreferrer" className="text-xs text-vyto-text-muted hover:text-vyto-cyan flex items-center gap-1">Poster <ExternalLink className="w-3 h-3" /></a>}
-                          {e.invitation_url && <a href={e.invitation_url} target="_blank" rel="noopener noreferrer" className="text-xs text-vyto-text-muted hover:text-vyto-cyan flex items-center gap-1">Invite <ExternalLink className="w-3 h-3" /></a>}
+                    <div key={e.id} className="glass-card p-4 sm:p-5">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-sm sm:text-base font-semibold text-white truncate">{e.title}</h3>
+                          <p className="text-xs sm:text-sm text-vyto-text-muted">{new Date(e.date).toLocaleDateString()} · {e.location || 'TBA'}</p>
+                          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mt-1.5">
+                            <span className={`px-2 py-0.5 rounded text-xs font-medium ${e.status === 'upcoming' ? 'bg-vyto-cyan/10 text-vyto-cyan' : e.status === 'completed' ? 'bg-vyto-text-muted/10 text-vyto-text-muted' : e.status === 'ongoing' ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>{e.status}</span>
+                            {e.registration_url && <a href={e.registration_url} target="_blank" rel="noopener noreferrer" className="text-xs text-vyto-cyan hover:underline flex items-center gap-1">Register <ExternalLink className="w-3 h-3" /></a>}
+                            {e.poster_url && <a href={e.poster_url} target="_blank" rel="noopener noreferrer" className="text-xs text-vyto-text-muted hover:text-vyto-cyan flex items-center gap-1">Poster <ExternalLink className="w-3 h-3" /></a>}
+                            {e.invitation_url && <a href={e.invitation_url} target="_blank" rel="noopener noreferrer" className="text-xs text-vyto-text-muted hover:text-vyto-cyan flex items-center gap-1">Invite <ExternalLink className="w-3 h-3" /></a>}
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex gap-2 shrink-0">
-                        <button onClick={() => handleDeleteEvent(e.id)} className="p-2 rounded-lg text-red-400 hover:bg-red-400/10 transition-all" title="Delete"><Trash2 className="w-4 h-4" /></button>
+                        <div className="flex gap-1 sm:gap-2 shrink-0">
+                          <button onClick={() => handleDeleteEvent(e.id)} className="p-2 rounded-lg text-red-400 hover:bg-red-400/10 transition-all" title="Delete"><Trash2 className="w-4 h-4" /></button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -547,36 +687,36 @@ export default function Admin() {
             {/* ─── Posters Tab ─── */}
             {activeTab === 'posters' && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                <div className="flex items-center justify-between mb-6">
-                  <h1 className="text-2xl font-bold text-white">Poster Management</h1>
-                  <button onClick={openCreatePoster} className="btn-primary text-sm !py-2 !px-4"><Plus className="w-4 h-4" /> Add Poster</button>
+                <div className="flex items-center justify-between mb-5 sm:mb-6">
+                  <h1 className="text-xl sm:text-2xl font-bold text-white">Poster Management</h1>
+                  <button onClick={openCreatePoster} className="btn-primary text-sm !py-2 !px-3 sm:!px-4"><Plus className="w-4 h-4" /> <span className="hidden sm:inline">Add </span>Poster</button>
                 </div>
                 {posters.length === 0 ? (
-                  <div className="glass-card p-12 text-center"><Image className="w-12 h-12 text-vyto-text-muted/30 mx-auto mb-4" /><h3 className="text-lg font-semibold text-white mb-2">No posters yet</h3><p className="text-vyto-text-muted text-sm">Create posters that appear as popups on the home page.</p></div>
+                  <div className="glass-card p-8 sm:p-12 text-center"><Image className="w-12 h-12 text-vyto-text-muted/30 mx-auto mb-4" /><h3 className="text-lg font-semibold text-white mb-2">No posters yet</h3><p className="text-vyto-text-muted text-sm">Create posters that appear as popups on the home page.</p></div>
                 ) : (
                   <div className="space-y-3">
                     {posters.map(p => {
                       const isExpired = p.expires_at && new Date(p.expires_at) < new Date();
                       return (
-                        <div key={p.id} className="glass-card p-5 flex items-center justify-between gap-4">
-                          <div className="flex items-center gap-4 flex-1 min-w-0">
-                            <div className="w-16 h-16 rounded-lg bg-vyto-surface overflow-hidden shrink-0">
+                        <div key={p.id} className="glass-card p-4 sm:p-5">
+                          <div className="flex items-start gap-3 sm:gap-4">
+                            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg bg-vyto-surface overflow-hidden shrink-0">
                               <img src={getAssetUrl(p.image_url) || p.image_url} alt={p.title || 'Poster'} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                             </div>
-                            <div className="min-w-0">
-                              <h3 className="text-base font-semibold text-white truncate">{p.title || 'Untitled Poster'}</h3>
-                              <div className="flex items-center gap-2 mt-1">
+                            <div className="flex-1 min-w-0">
+                              <h3 className="text-sm sm:text-base font-semibold text-white truncate">{p.title || 'Untitled Poster'}</h3>
+                              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mt-1">
                                 <span className={`px-2 py-0.5 rounded text-xs font-medium ${p.active && !isExpired ? 'bg-green-500/10 text-green-400' : 'bg-vyto-text-muted/10 text-vyto-text-muted'}`}>
                                   {isExpired ? 'Expired' : p.active ? 'Active' : 'Inactive'}
                                 </span>
-                                {p.expires_at && <span className="text-xs text-vyto-text-muted">Expires: {new Date(p.expires_at).toLocaleDateString()}</span>}
+                                {p.expires_at && <span className="text-xs text-vyto-text-muted">Exp: {new Date(p.expires_at).toLocaleDateString()}</span>}
+                              </div>
+                              <div className="flex items-center gap-1 sm:gap-2 mt-2">
+                                <button onClick={() => handleTogglePoster(p)} className="text-xs text-vyto-text-muted hover:text-vyto-cyan transition-colors px-2 py-1">{p.active ? 'Deactivate' : 'Activate'}</button>
+                                <button onClick={() => openEditPoster(p)} className="p-1.5 rounded-lg text-vyto-text-muted hover:text-vyto-cyan hover:bg-vyto-cyan/10 transition-all"><Edit3 className="w-4 h-4" /></button>
+                                <button onClick={() => handleDeletePoster(p.id)} className="p-1.5 rounded-lg text-red-400 hover:bg-red-400/10 transition-all"><Trash2 className="w-4 h-4" /></button>
                               </div>
                             </div>
-                          </div>
-                          <div className="flex gap-2 shrink-0">
-                            <button onClick={() => handleTogglePoster(p)} className="text-xs text-vyto-text-muted hover:text-vyto-cyan transition-colors px-2 py-1">{p.active ? 'Deactivate' : 'Activate'}</button>
-                            <button onClick={() => openEditPoster(p)} className="p-2 rounded-lg text-vyto-text-muted hover:text-vyto-cyan hover:bg-vyto-cyan/10 transition-all"><Edit3 className="w-4 h-4" /></button>
-                            <button onClick={() => handleDeletePoster(p.id)} className="p-2 rounded-lg text-red-400 hover:bg-red-400/10 transition-all"><Trash2 className="w-4 h-4" /></button>
                           </div>
                         </div>
                       );
@@ -589,25 +729,27 @@ export default function Admin() {
             {/* ─── Important Links Tab ─── */}
             {activeTab === 'important-links' && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                <div className="flex items-center justify-between mb-6">
-                  <h1 className="text-2xl font-bold text-white">Important Links</h1>
-                  <button onClick={openCreateLink} className="btn-primary text-sm !py-2 !px-4"><Plus className="w-4 h-4" /> Add Link</button>
+                <div className="flex items-center justify-between mb-5 sm:mb-6">
+                  <h1 className="text-xl sm:text-2xl font-bold text-white">Important Links</h1>
+                  <button onClick={openCreateLink} className="btn-primary text-sm !py-2 !px-3 sm:!px-4"><Plus className="w-4 h-4" /> <span className="hidden sm:inline">Add </span>Link</button>
                 </div>
                 {importantLinks.length === 0 ? (
-                  <div className="glass-card p-12 text-center"><Link2 className="w-12 h-12 text-vyto-text-muted/30 mx-auto mb-4" /><h3 className="text-lg font-semibold text-white mb-2">No important links yet</h3><p className="text-vyto-text-muted text-sm">Assign private links to specific users.</p></div>
+                  <div className="glass-card p-8 sm:p-12 text-center"><Link2 className="w-12 h-12 text-vyto-text-muted/30 mx-auto mb-4" /><h3 className="text-lg font-semibold text-white mb-2">No important links yet</h3><p className="text-vyto-text-muted text-sm">Assign private links to specific users.</p></div>
                 ) : (
                   <div className="space-y-3">
                     {importantLinks.map(l => (
-                      <div key={l.id} className="glass-card p-5 flex items-center justify-between gap-4">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-base font-semibold text-white truncate">{l.title}</h3>
-                          <p className="text-sm text-vyto-text-muted">Assigned to: {l.assigned_user_name || 'Unknown'}{l.expires_at ? ` · Expires: ${new Date(l.expires_at).toLocaleDateString()}` : ''}</p>
-                          <a href={l.url} target="_blank" rel="noopener noreferrer" className="text-xs text-vyto-cyan hover:underline flex items-center gap-1 mt-1">{l.url} <ExternalLink className="w-3 h-3" /></a>
-                        </div>
-                        <div className="flex gap-2 shrink-0">
-                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${l.active ? 'bg-green-500/10 text-green-400' : 'bg-vyto-text-muted/10 text-vyto-text-muted'}`}>{l.active ? 'Active' : 'Inactive'}</span>
-                          <button onClick={() => openEditLink(l)} className="p-2 rounded-lg text-vyto-text-muted hover:text-vyto-cyan hover:bg-vyto-cyan/10 transition-all"><Edit3 className="w-4 h-4" /></button>
-                          <button onClick={() => handleDeleteLink(l.id)} className="p-2 rounded-lg text-red-400 hover:bg-red-400/10 transition-all"><Trash2 className="w-4 h-4" /></button>
+                      <div key={l.id} className="glass-card p-4 sm:p-5">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-sm sm:text-base font-semibold text-white truncate">{l.title}</h3>
+                            <p className="text-xs sm:text-sm text-vyto-text-muted">Assigned to: {l.assigned_user_name || 'Unknown'}{l.expires_at ? ` · Expires: ${new Date(l.expires_at).toLocaleDateString()}` : ''}</p>
+                            <a href={l.url} target="_blank" rel="noopener noreferrer" className="text-xs text-vyto-cyan hover:underline flex items-center gap-1 mt-1 truncate">{l.url} <ExternalLink className="w-3 h-3 shrink-0" /></a>
+                          </div>
+                          <div className="flex gap-1 sm:gap-2 shrink-0 items-start">
+                            <span className={`px-2 py-0.5 rounded text-xs font-medium ${l.active ? 'bg-green-500/10 text-green-400' : 'bg-vyto-text-muted/10 text-vyto-text-muted'}`}>{l.active ? 'Active' : 'Inactive'}</span>
+                            <button onClick={() => openEditLink(l)} className="p-1.5 rounded-lg text-vyto-text-muted hover:text-vyto-cyan hover:bg-vyto-cyan/10 transition-all"><Edit3 className="w-4 h-4" /></button>
+                            <button onClick={() => handleDeleteLink(l.id)} className="p-1.5 rounded-lg text-red-400 hover:bg-red-400/10 transition-all"><Trash2 className="w-4 h-4" /></button>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -619,19 +761,19 @@ export default function Admin() {
             {/* ─── Library Tab ─── */}
             {activeTab === 'library' && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                <div className="flex items-center justify-between mb-6">
-                  <h1 className="text-2xl font-bold text-white">Library Management</h1>
-                  <button onClick={() => { resetResourceForm(); setShowResourceModal(true); }} className="btn-primary text-sm !py-2 !px-4"><Plus className="w-4 h-4" /> Add Resource</button>
+                <div className="flex items-center justify-between mb-5 sm:mb-6">
+                  <h1 className="text-xl sm:text-2xl font-bold text-white">Library Management</h1>
+                  <button onClick={() => { resetResourceForm(); setShowResourceModal(true); }} className="btn-primary text-sm !py-2 !px-3 sm:!px-4"><Plus className="w-4 h-4" /> <span className="hidden sm:inline">Add </span>Resource</button>
                 </div>
                 <div className="space-y-3">
                   {resources.map(r => (
-                    <div key={r.id} className="glass-card p-5 flex items-center justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-base font-semibold text-white truncate">{r.title}</h3>
-                        <p className="text-sm text-vyto-text-muted">{r.category} · {r.resource_type.toUpperCase()}{r.author && ` · ${r.author}`}</p>
-                      </div>
-                      <div className="flex gap-2 shrink-0">
-                        <button onClick={() => handleDeleteResource(r.id)} className="p-2 rounded-lg text-red-400 hover:bg-red-400/10 transition-all"><Trash2 className="w-4 h-4" /></button>
+                    <div key={r.id} className="glass-card p-4 sm:p-5">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-sm sm:text-base font-semibold text-white truncate">{r.title}</h3>
+                          <p className="text-xs sm:text-sm text-vyto-text-muted">{r.category} · {r.resource_type.toUpperCase()}{r.author && ` · ${r.author}`}</p>
+                        </div>
+                        <button onClick={() => handleDeleteResource(r.id)} className="p-2 rounded-lg text-red-400 hover:bg-red-400/10 transition-all shrink-0"><Trash2 className="w-4 h-4" /></button>
                       </div>
                     </div>
                   ))}
@@ -647,17 +789,17 @@ export default function Admin() {
       {/* Team Modal */}
       <AnimatePresence>
         {showTeamModal && selectedUser && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowTeamModal(false)}>
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="glass-card p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-bold text-white">Manage Team Membership</h2>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowTeamModal(false)}>
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="glass-card p-5 sm:p-6 w-full sm:max-w-md sm:rounded-2xl rounded-t-2xl max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-5 sm:mb-6">
+                <h2 className="text-base sm:text-lg font-bold text-white">Manage Team Membership</h2>
                 <button onClick={() => setShowTeamModal(false)} className="text-vyto-text-muted hover:text-white"><X className="w-5 h-5" /></button>
               </div>
-              <div className="flex items-center gap-3 mb-6 p-3 rounded-xl bg-vyto-surface/50 border border-vyto-border/50">
+              <div className="flex items-center gap-3 mb-5 sm:mb-6 p-3 rounded-xl bg-vyto-surface/50 border border-vyto-border/50">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-vyto-cyan/30 to-vyto-violet/30 flex items-center justify-center text-sm font-bold text-white shrink-0 overflow-hidden">
                   {selectedUser.profile_image ? <img src={getAssetUrl(selectedUser.profile_image) || selectedUser.profile_image} alt="" className="w-full h-full rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} /> : selectedUser.name.charAt(0)}
                 </div>
-                <div><p className="text-sm font-medium text-white">{selectedUser.name}</p><p className="text-xs text-vyto-text-muted">{selectedUser.email}</p></div>
+                <div className="min-w-0"><p className="text-sm font-medium text-white truncate">{selectedUser.name}</p><p className="text-xs text-vyto-text-muted truncate">{selectedUser.email}</p></div>
               </div>
               <div className="mb-5">
                 <label className="block text-sm font-medium text-vyto-text-secondary mb-2">Team Member</label>
@@ -665,7 +807,7 @@ export default function Admin() {
                   <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${teamEnabled ? 'left-[26px]' : 'left-0.5'}`} />
                 </button>
               </div>
-              <div className="mb-6 relative">
+              <div className="mb-5 sm:mb-6 relative">
                 <label className="block text-sm font-medium text-vyto-text-secondary mb-2">Team Designation {teamEnabled && <span className="text-vyto-error">*</span>}</label>
                 <input type="text" value={teamRole} onChange={e => handleRoleSearch(e.target.value)} placeholder={teamEnabled ? 'e.g. Frontend Lead' : 'Enable team membership first'} disabled={!teamEnabled} className="input-field disabled:opacity-40 disabled:cursor-not-allowed" maxLength={100} />
                 {teamEnabled && roleSuggestions.length > 0 && (
@@ -688,10 +830,10 @@ export default function Admin() {
       {/* Task Modal */}
       <AnimatePresence>
         {showTaskModal && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowTaskModal(false)}>
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="glass-card p-6 w-full max-w-lg max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-bold text-white">{selectedTask ? 'Edit Task' : 'Assign Task'}</h2>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowTaskModal(false)}>
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="glass-card p-5 sm:p-6 w-full sm:max-w-lg max-h-[85vh] overflow-y-auto sm:rounded-2xl rounded-t-2xl" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-5 sm:mb-6">
+                <h2 className="text-base sm:text-lg font-bold text-white">{selectedTask ? 'Edit Task' : 'Assign Task'}</h2>
                 <button onClick={() => setShowTaskModal(false)} className="text-vyto-text-muted hover:text-white"><X className="w-5 h-5" /></button>
               </div>
               <div className="space-y-4">
@@ -710,7 +852,7 @@ export default function Admin() {
                   <label className="block text-sm text-vyto-text-secondary mb-1">Description</label>
                   <textarea value={taskForm.description} onChange={e => setTaskForm({ ...taskForm, description: e.target.value })} rows={3} className="input-field resize-none" />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3 sm:gap-4">
                   <div>
                     <label className="block text-sm text-vyto-text-secondary mb-1">Priority</label>
                     <select value={taskForm.priority} onChange={e => setTaskForm({ ...taskForm, priority: e.target.value })} className="input-field">
@@ -728,7 +870,7 @@ export default function Admin() {
                   <label className="block text-sm text-vyto-text-secondary mb-1">Due Date</label>
                   <input type="date" value={taskForm.due_date} onChange={e => setTaskForm({ ...taskForm, due_date: e.target.value })} className="input-field" />
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 pt-2">
                   <button onClick={() => setShowTaskModal(false)} className="btn-secondary flex-1 !py-2.5">Cancel</button>
                   <button onClick={handleSaveTask} className="btn-primary flex-1 !py-2.5"><Save className="w-4 h-4" /> {selectedTask ? 'Update' : 'Assign'}</button>
                 </div>
@@ -741,10 +883,10 @@ export default function Admin() {
       {/* Poster Modal */}
       <AnimatePresence>
         {showPosterModal && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowPosterModal(false)}>
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="glass-card p-6 w-full max-w-lg" onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-bold text-white">{selectedPoster ? 'Edit Poster' : 'Add Poster'}</h2>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowPosterModal(false)}>
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="glass-card p-5 sm:p-6 w-full sm:max-w-lg max-h-[85vh] overflow-y-auto sm:rounded-2xl rounded-t-2xl" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-5 sm:mb-6">
+                <h2 className="text-base sm:text-lg font-bold text-white">{selectedPoster ? 'Edit Poster' : 'Add Poster'}</h2>
                 <button onClick={() => setShowPosterModal(false)} className="text-vyto-text-muted hover:text-white"><X className="w-5 h-5" /></button>
               </div>
               <div className="space-y-4">
@@ -770,7 +912,7 @@ export default function Admin() {
                     <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${posterForm.active ? 'left-[26px]' : 'left-0.5'}`} />
                   </button>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 pt-2">
                   <button onClick={() => setShowPosterModal(false)} className="btn-secondary flex-1 !py-2.5">Cancel</button>
                   <button onClick={handleSavePoster} className="btn-primary flex-1 !py-2.5"><Save className="w-4 h-4" /> {selectedPoster ? 'Update' : 'Publish'}</button>
                 </div>
@@ -783,10 +925,10 @@ export default function Admin() {
       {/* Important Link Modal */}
       <AnimatePresence>
         {showLinkModal && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowLinkModal(false)}>
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="glass-card p-6 w-full max-w-lg" onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-bold text-white">{selectedLink ? 'Edit Link' : 'Add Important Link'}</h2>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowLinkModal(false)}>
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="glass-card p-5 sm:p-6 w-full sm:max-w-lg max-h-[85vh] overflow-y-auto sm:rounded-2xl rounded-t-2xl" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-5 sm:mb-6">
+                <h2 className="text-base sm:text-lg font-bold text-white">{selectedLink ? 'Edit Link' : 'Add Important Link'}</h2>
                 <button onClick={() => setShowLinkModal(false)} className="text-vyto-text-muted hover:text-white"><X className="w-5 h-5" /></button>
               </div>
               <div className="space-y-4">
@@ -819,7 +961,7 @@ export default function Admin() {
                     <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${linkForm.active ? 'left-[26px]' : 'left-0.5'}`} />
                   </button>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 pt-2">
                   <button onClick={() => setShowLinkModal(false)} className="btn-secondary flex-1 !py-2.5">Cancel</button>
                   <button onClick={handleSaveLink} className="btn-primary flex-1 !py-2.5"><Save className="w-4 h-4" /> {selectedLink ? 'Update' : 'Save Link'}</button>
                 </div>
@@ -832,16 +974,16 @@ export default function Admin() {
       {/* Event Modal */}
       <AnimatePresence>
         {showEventModal && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowEventModal(false)}>
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="glass-card p-6 w-full max-w-lg max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-bold text-white">Create Event</h2>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowEventModal(false)}>
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="glass-card p-5 sm:p-6 w-full sm:max-w-lg max-h-[85vh] overflow-y-auto sm:rounded-2xl rounded-t-2xl" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-5 sm:mb-6">
+                <h2 className="text-base sm:text-lg font-bold text-white">Create Event</h2>
                 <button onClick={() => setShowEventModal(false)} className="text-vyto-text-muted hover:text-white"><X className="w-5 h-5" /></button>
               </div>
               <div className="space-y-4">
                 <div><label className="block text-sm text-vyto-text-secondary mb-1">Title *</label><input value={eventForm.title} onChange={e => setEventForm({ ...eventForm, title: e.target.value })} className="input-field" /></div>
                 <div><label className="block text-sm text-vyto-text-secondary mb-1">Description</label><textarea value={eventForm.description} onChange={e => setEventForm({ ...eventForm, description: e.target.value })} rows={3} className="input-field resize-none" /></div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3 sm:gap-4">
                   <div><label className="block text-sm text-vyto-text-secondary mb-1">Date *</label><input type="date" value={eventForm.date} onChange={e => setEventForm({ ...eventForm, date: e.target.value })} className="input-field" /></div>
                   <div><label className="block text-sm text-vyto-text-secondary mb-1">Location</label><input value={eventForm.location} onChange={e => setEventForm({ ...eventForm, location: e.target.value })} className="input-field" /></div>
                 </div>
@@ -858,16 +1000,16 @@ export default function Admin() {
       {/* Resource Modal */}
       <AnimatePresence>
         {showResourceModal && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowResourceModal(false)}>
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="glass-card p-6 w-full max-w-lg max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-bold text-white">Add Resource</h2>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowResourceModal(false)}>
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="glass-card p-5 sm:p-6 w-full sm:max-w-lg max-h-[85vh] overflow-y-auto sm:rounded-2xl rounded-t-2xl" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-5 sm:mb-6">
+                <h2 className="text-base sm:text-lg font-bold text-white">Add Resource</h2>
                 <button onClick={() => setShowResourceModal(false)} className="text-vyto-text-muted hover:text-white"><X className="w-5 h-5" /></button>
               </div>
               <div className="space-y-4">
                 <div><label className="block text-sm text-vyto-text-secondary mb-1">Title *</label><input value={resourceForm.title} onChange={e => setResourceForm({ ...resourceForm, title: e.target.value })} className="input-field" /></div>
                 <div><label className="block text-sm text-vyto-text-secondary mb-1">Description</label><textarea value={resourceForm.description} onChange={e => setResourceForm({ ...resourceForm, description: e.target.value })} rows={3} className="input-field resize-none" /></div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3 sm:gap-4">
                   <div><label className="block text-sm text-vyto-text-secondary mb-1">Category *</label><input value={resourceForm.category} onChange={e => setResourceForm({ ...resourceForm, category: e.target.value })} className="input-field" placeholder="e.g. Web Development" /></div>
                   <div><label className="block text-sm text-vyto-text-secondary mb-1">Type</label><select value={resourceForm.resource_type} onChange={e => setResourceForm({ ...resourceForm, resource_type: e.target.value })} className="input-field"><option value="pdf">PDF</option><option value="document">Document</option><option value="tutorial">Tutorial</option><option value="note">Notes</option><option value="link">Link</option><option value="video">Video</option><option value="other">Other</option></select></div>
                 </div>
@@ -881,9 +1023,9 @@ export default function Admin() {
       {/* Stars Modal */}
       <AnimatePresence>
         {showStarsModal && selectedUser && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowStarsModal(false)}>
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="glass-card p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
-              <h2 className="text-lg font-bold text-white mb-2">Assign Stars</h2>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowStarsModal(false)}>
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="glass-card p-5 sm:p-6 w-full sm:max-w-sm sm:rounded-2xl rounded-t-2xl" onClick={e => e.stopPropagation()}>
+              <h2 className="text-base sm:text-lg font-bold text-white mb-2">Assign Stars</h2>
               <p className="text-sm text-vyto-text-muted mb-4">Set star count for {selectedUser.name}</p>
               <input type="number" value={starCount} onChange={e => setStarCount(parseInt(e.target.value) || 0)} min={0} max={9999} className="input-field mb-4" />
               <div className="flex gap-2">
@@ -898,17 +1040,17 @@ export default function Admin() {
       {/* Role Modal */}
       <AnimatePresence>
         {showRoleModal && selectedUser && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowRoleModal(false)}>
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="glass-card p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowRoleModal(false)}>
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="glass-card p-5 sm:p-6 w-full sm:max-w-sm sm:rounded-2xl rounded-t-2xl" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-white">System Role</h2>
+                <h2 className="text-base sm:text-lg font-bold text-white">System Role</h2>
                 <button onClick={() => setShowRoleModal(false)} className="text-vyto-text-muted hover:text-white"><X className="w-5 h-5" /></button>
               </div>
               <div className="flex items-center gap-3 mb-5 p-3 rounded-xl bg-vyto-surface/50 border border-vyto-border/50">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-vyto-cyan/30 to-vyto-violet/30 flex items-center justify-center text-sm font-bold text-white shrink-0 overflow-hidden">
                   {selectedUser.profile_image ? <img src={getAssetUrl(selectedUser.profile_image) || selectedUser.profile_image} alt="" className="w-full h-full rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} /> : selectedUser.name.charAt(0)}
                 </div>
-                <div><p className="text-sm font-medium text-white">{selectedUser.name}</p><p className="text-xs text-vyto-text-muted">{selectedUser.email}</p></div>
+                <div className="min-w-0"><p className="text-sm font-medium text-white truncate">{selectedUser.name}</p><p className="text-xs text-vyto-text-muted truncate">{selectedUser.email}</p></div>
               </div>
               <p className="text-sm text-vyto-text-secondary mb-3">Select a system role:</p>
               <div className="space-y-2 mb-6">
