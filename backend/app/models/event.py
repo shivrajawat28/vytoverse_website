@@ -26,6 +26,8 @@ class Event(Base):
     invitation_file = Column(String(500), nullable=True)
     status = Column(SAEnum(EventStatus), default=EventStatus.UPCOMING, nullable=False)
     registration_url = Column(String(500), nullable=True)
+    poster_url = Column(String(500), nullable=True)
+    invitation_url = Column(String(500), nullable=True)
     max_participants = Column(Integer, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

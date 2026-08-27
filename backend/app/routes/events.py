@@ -1,3 +1,4 @@
+from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from typing import Optional
@@ -27,11 +28,25 @@ def list_upcoming_events(
     limit: int = Query(10, ge=1, le=50),
     db: Session = Depends(get_db),
 ):
-    from datetime import date
     events = (
         db.query(Event)
         .filter(Event.date >= date.today(), Event.status != EventStatus.CANCELLED)
         .order_by(Event.date.asc())
+        .limit(limit)
+        .all()
+    )
+    return [EventResponse.model_validate(e) for e in events]
+
+
+@router.get("/past", response_model=list[EventResponse])
+def list_past_events(
+    limit: int = Query(20, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    events = (
+        db.query(Event)
+        .filter(Event.date < date.today())
+        .order_by(Event.date.desc())
         .limit(limit)
         .all()
     )

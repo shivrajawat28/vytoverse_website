@@ -1,4 +1,5 @@
 import os
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query, status
 from sqlalchemy.orm import Session
 from typing import Optional
@@ -6,11 +7,17 @@ from ..database import get_db
 from ..models.user import User, UserRole
 from ..models.event import Event, EventStatus
 from ..models.library import LibraryResource
+from ..models.task import Task
+from ..models.poster import Poster
+from ..models.important_link import ImportantLink
 from ..schemas.user import UserResponse, UserAdminUpdate, StarAssign, TeamMemberUpdate
 from ..schemas.event import EventCreate, EventUpdate, EventResponse
 from ..schemas.library import LibraryCreate, LibraryUpdate, LibraryResponse
+from ..schemas.task import TaskCreate, TaskUpdate, TaskResponse
+from ..schemas.poster import PosterCreate, PosterUpdate, PosterResponse
+from ..schemas.important_link import ImportantLinkCreate, ImportantLinkUpdate, ImportantLinkResponse
 from ..auth.dependencies import get_current_admin
-from ..config import UPLOAD_DIR, MAX_UPLOAD_SIZE
+from ..config import UPLOAD_DIR, MAX_UPLOAD_SIZE, ALLOWED_IMAGE_TYPES
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
@@ -294,3 +301,259 @@ async def upload_library_file(
     db.commit()
 
     return {"file_url": resource.file_url}
+
+
+# ── Task Management ──
+@router.get("/tasks", response_model=list[TaskResponse])
+def admin_list_tasks(
+    search: Optional[str] = Query(None),
+    assigned_user_id: Optional[int] = Query(None),
+    task_status: Optional[str] = Query(None, alias="status"),
+    priority: Optional[str] = Query(None),
+    admin: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    query = db.query(Task)
+    if search:
+        query = query.filter(Task.title.ilike(f"%{search}%"))
+    if assigned_user_id:
+        query = query.filter(Task.assigned_user_id == assigned_user_id)
+    if task_status:
+        query = query.filter(Task.status == task_status)
+    if priority:
+        query = query.filter(Task.priority == priority)
+    tasks = query.order_by(Task.created_at.desc()).all()
+    result = []
+    for t in tasks:
+        resp = TaskResponse.model_validate(t)
+        resp.assigned_user_name = t.assigned_user.name if t.assigned_user else None
+        result.append(resp)
+    return result
+
+
+@router.get("/tasks/{task_id}", response_model=TaskResponse)
+def admin_get_task(
+    task_id: int,
+    admin: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    task = db.query(Task).filter(Task.id == task_id).first()
+    if not task:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+    resp = TaskResponse.model_validate(task)
+    resp.assigned_user_name = task.assigned_user.name if task.assigned_user else None
+    return resp
+
+
+@router.post("/tasks", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
+def create_task(
+    request: TaskCreate,
+    admin: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    # Validate user exists
+    user = db.query(User).filter(User.id == request.assigned_user_id).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Assigned user not found")
+    task = Task(**request.model_dump())
+    db.add(task)
+    db.commit()
+    db.refresh(task)
+    resp = TaskResponse.model_validate(task)
+    resp.assigned_user_name = user.name
+    return resp
+
+
+@router.put("/tasks/{task_id}", response_model=TaskResponse)
+def update_task(
+    task_id: int,
+    request: TaskUpdate,
+    admin: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    task = db.query(Task).filter(Task.id == task_id).first()
+    if not task:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+    update_data = request.model_dump(exclude_unset=True)
+    if "assigned_user_id" in update_data:
+        user = db.query(User).filter(User.id == update_data["assigned_user_id"]).first()
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Assigned user not found")
+    for key, value in update_data.items():
+        setattr(task, key, value)
+    db.commit()
+    db.refresh(task)
+    resp = TaskResponse.model_validate(task)
+    resp.assigned_user_name = task.assigned_user.name if task.assigned_user else None
+    return resp
+
+
+@router.delete("/tasks/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_task(
+    task_id: int,
+    admin: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    task = db.query(Task).filter(Task.id == task_id).first()
+    if not task:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+    db.delete(task)
+    db.commit()
+
+
+# ── Poster Management ──
+@router.get("/posters", response_model=list[PosterResponse])
+def admin_list_posters(
+    admin: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    posters = db.query(Poster).order_by(Poster.created_at.desc()).all()
+    return [PosterResponse.model_validate(p) for p in posters]
+
+
+@router.post("/posters", response_model=PosterResponse, status_code=status.HTTP_201_CREATED)
+def create_poster(
+    request: PosterCreate,
+    admin: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    poster = Poster(**request.model_dump())
+    db.add(poster)
+    db.commit()
+    db.refresh(poster)
+    return PosterResponse.model_validate(poster)
+
+
+@router.put("/posters/{poster_id}", response_model=PosterResponse)
+def update_poster(
+    poster_id: int,
+    request: PosterUpdate,
+    admin: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    poster = db.query(Poster).filter(Poster.id == poster_id).first()
+    if not poster:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Poster not found")
+    update_data = request.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(poster, key, value)
+    db.commit()
+    db.refresh(poster)
+    return PosterResponse.model_validate(poster)
+
+
+@router.delete("/posters/{poster_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_poster(
+    poster_id: int,
+    admin: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    poster = db.query(Poster).filter(Poster.id == poster_id).first()
+    if not poster:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Poster not found")
+    db.delete(poster)
+    db.commit()
+
+
+@router.post("/posters/{poster_id}/image")
+async def upload_poster_image(
+    poster_id: int,
+    file: UploadFile = File(...),
+    admin: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    poster = db.query(Poster).filter(Poster.id == poster_id).first()
+    if not poster:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Poster not found")
+    if file.content_type not in ALLOWED_IMAGE_TYPES:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid file type. Allowed: JPEG, PNG, WebP")
+    contents = await file.read()
+    if len(contents) > MAX_UPLOAD_SIZE:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File too large")
+    upload_path = os.path.join(UPLOAD_DIR, "posters")
+    os.makedirs(upload_path, exist_ok=True)
+    ext = file.filename.split(".")[-1] if "." in file.filename else "jpg"
+    filename = f"poster_{poster_id}.{ext}"
+    filepath = os.path.join(upload_path, filename)
+    with open(filepath, "wb") as f:
+        f.write(contents)
+    poster.image_url = f"/uploads/posters/{filename}"
+    db.commit()
+    return {"image_url": poster.image_url}
+
+
+# ── Important Links Management ──
+@router.get("/important-links", response_model=list[ImportantLinkResponse])
+def admin_list_important_links(
+    search: Optional[str] = Query(None),
+    assigned_user_id: Optional[int] = Query(None),
+    admin: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    query = db.query(ImportantLink)
+    if search:
+        query = query.filter(ImportantLink.title.ilike(f"%{search}%"))
+    if assigned_user_id:
+        query = query.filter(ImportantLink.assigned_user_id == assigned_user_id)
+    links = query.order_by(ImportantLink.created_at.desc()).all()
+    result = []
+    for link in links:
+        resp = ImportantLinkResponse.model_validate(link)
+        resp.assigned_user_name = link.assigned_user.name if link.assigned_user else None
+        result.append(resp)
+    return result
+
+
+@router.post("/important-links", response_model=ImportantLinkResponse, status_code=status.HTTP_201_CREATED)
+def create_important_link(
+    request: ImportantLinkCreate,
+    admin: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    user = db.query(User).filter(User.id == request.assigned_user_id).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Assigned user not found")
+    link = ImportantLink(**request.model_dump())
+    db.add(link)
+    db.commit()
+    db.refresh(link)
+    resp = ImportantLinkResponse.model_validate(link)
+    resp.assigned_user_name = user.name
+    return resp
+
+
+@router.put("/important-links/{link_id}", response_model=ImportantLinkResponse)
+def update_important_link(
+    link_id: int,
+    request: ImportantLinkUpdate,
+    admin: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    link = db.query(ImportantLink).filter(ImportantLink.id == link_id).first()
+    if not link:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Link not found")
+    update_data = request.model_dump(exclude_unset=True)
+    if "assigned_user_id" in update_data:
+        user = db.query(User).filter(User.id == update_data["assigned_user_id"]).first()
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Assigned user not found")
+    for key, value in update_data.items():
+        setattr(link, key, value)
+    db.commit()
+    db.refresh(link)
+    resp = ImportantLinkResponse.model_validate(link)
+    resp.assigned_user_name = link.assigned_user.name if link.assigned_user else None
+    return resp
+
+
+@router.delete("/important-links/{link_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_important_link(
+    link_id: int,
+    admin: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    link = db.query(ImportantLink).filter(ImportantLink.id == link_id).first()
+    if not link:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Link not found")
+    db.delete(link)
+    db.commit()

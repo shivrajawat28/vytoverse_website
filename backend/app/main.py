@@ -13,6 +13,9 @@ from .routes import (
     admin_router,
     stats_router,
     team_router,
+    tasks_router,
+    posters_router,
+    important_links_router,
 )
 
 logger = logging.getLogger("vytoverse")
@@ -32,6 +35,16 @@ try:
         conn.execute(
             __import__('sqlalchemy').text(
                 "ALTER TABLE users ADD COLUMN IF NOT EXISTS team_role VARCHAR(100)"
+            )
+        )
+        conn.execute(
+            __import__('sqlalchemy').text(
+                "ALTER TABLE events ADD COLUMN IF NOT EXISTS poster_url VARCHAR(500)"
+            )
+        )
+        conn.execute(
+            __import__('sqlalchemy').text(
+                "ALTER TABLE events ADD COLUMN IF NOT EXISTS invitation_url VARCHAR(500)"
             )
         )
         conn.commit()
@@ -80,6 +93,9 @@ app.include_router(library_router)
 app.include_router(admin_router)
 app.include_router(stats_router)
 app.include_router(team_router)
+app.include_router(tasks_router)
+app.include_router(posters_router)
+app.include_router(important_links_router)
 
 
 @app.get("/")

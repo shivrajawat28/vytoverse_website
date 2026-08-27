@@ -31,6 +31,8 @@ export interface Event {
   invitation_file: string | null;
   status: 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
   registration_url: string | null;
+  poster_url: string | null;
+  invitation_url: string | null;
   max_participants: number | null;
   created_at: string | null;
 }
@@ -49,6 +51,43 @@ export interface LibraryResource {
   created_at: string | null;
 }
 
+export interface Task {
+  id: number;
+  title: string;
+  description: string | null;
+  assigned_user_id: number;
+  assigned_user_name: string | null;
+  status: 'todo' | 'in_progress' | 'completed' | 'cancelled';
+  priority: 'low' | 'medium' | 'high';
+  due_date: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface Poster {
+  id: number;
+  title: string | null;
+  image_url: string;
+  target_url: string | null;
+  active: boolean;
+  expires_at: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface ImportantLink {
+  id: number;
+  title: string;
+  description: string | null;
+  url: string;
+  assigned_user_id: number;
+  assigned_user_name: string | null;
+  active: boolean;
+  expires_at: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
 export interface Stats {
   total_users: number;
   active_members: number;
@@ -56,6 +95,10 @@ export interface Stats {
   upcoming_events: number;
   total_resources: number;
   total_admins: number;
+  team_members: number;
+  active_tasks: number;
+  active_posters: number;
+  total_links: number;
 }
 
 export interface AuthResponse {

@@ -61,6 +61,7 @@ export const usersAPI = {
 export const eventsAPI = {
   list: (params?: Record<string, unknown>) => api.get('/events', { params }),
   upcoming: (limit?: number) => api.get('/events/upcoming', { params: { limit } }),
+  past: (limit?: number) => api.get('/events/past', { params: { limit } }),
   get: (id: number) => api.get(`/events/${id}`),
 };
 
@@ -79,6 +80,21 @@ export const statsAPI = {
 // Team API
 export const teamAPI = {
   list: () => api.get('/team'),
+};
+
+// Tasks API (user)
+export const tasksAPI = {
+  getMyTasks: () => api.get('/tasks/me'),
+};
+
+// Posters API (public)
+export const postersAPI = {
+  getActive: () => api.get('/posters/active'),
+};
+
+// Important Links API (user)
+export const importantLinksAPI = {
+  getMyLinks: () => api.get('/important-links/me'),
 };
 
 // Admin API
@@ -115,6 +131,32 @@ export const adminAPI = {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
+
+  // Tasks
+  listTasks: (params?: Record<string, unknown>) => api.get('/admin/tasks', { params }),
+  getTask: (id: number) => api.get(`/admin/tasks/${id}`),
+  createTask: (data: Record<string, unknown>) => api.post('/admin/tasks', data),
+  updateTask: (id: number, data: Record<string, unknown>) => api.put(`/admin/tasks/${id}`, data),
+  deleteTask: (id: number) => api.delete(`/admin/tasks/${id}`),
+
+  // Posters
+  listPosters: () => api.get('/admin/posters'),
+  createPoster: (data: Record<string, unknown>) => api.post('/admin/posters', data),
+  updatePoster: (id: number, data: Record<string, unknown>) => api.put(`/admin/posters/${id}`, data),
+  deletePoster: (id: number) => api.delete(`/admin/posters/${id}`),
+  uploadPosterImage: (id: number, file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post(`/admin/posters/${id}/image`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+
+  // Important Links
+  listImportantLinks: (params?: Record<string, unknown>) => api.get('/admin/important-links', { params }),
+  createImportantLink: (data: Record<string, unknown>) => api.post('/admin/important-links', data),
+  updateImportantLink: (id: number, data: Record<string, unknown>) => api.put(`/admin/important-links/${id}`, data),
+  deleteImportantLink: (id: number) => api.delete(`/admin/important-links/${id}`),
 };
 
 export default api;
