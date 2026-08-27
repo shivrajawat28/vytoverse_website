@@ -12,9 +12,9 @@ env/
 # Environment — NEVER commit secrets
 .env
 .env.local
-.env.production
 .env.*
 !.env.example
+!.env.production
 
 # Build
 frontend/dist/
