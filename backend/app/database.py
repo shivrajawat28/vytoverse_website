@@ -3,18 +3,24 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from .config import DATABASE_URL
 
+# Build the SQLAlchemy connection URL.
+# Render's Internal Database URL may use "postgres://" — SQLAlchemy accepts
+# "postgresql://" natively, so normalise the scheme once here.
+_sa_url = DATABASE_URL
+if _sa_url and _sa_url.startswith("postgres://"):
+    _sa_url = _sa_url.replace("postgres://", "postgresql://", 1)
+
 # Production PostgreSQL (e.g. Render) requires SSL.
-# If the URL already contains sslmode, honour it.
-# Otherwise, append sslmode=require for safety when using a non-localhost host.
+# Append sslmode=require only when connecting to a remote host.
 _connect_args = {}
-if DATABASE_URL and "localhost" not in DATABASE_URL and "127.0.0.1" not in DATABASE_URL:
-    if "sslmode" not in DATABASE_URL:
-        sep = "&" if "?" in DATABASE_URL else "?"
-        DATABASE_URL = f"{DATABASE_URL}{sep}sslmode=require"
+if _sa_url and "localhost" not in _sa_url and "127.0.0.1" not in _sa_url:
+    if "sslmode" not in _sa_url:
+        sep = "&" if "?" in _sa_url else "?"
+        _sa_url = f"{_sa_url}{sep}sslmode=require"
     _connect_args["sslmode"] = "require"
 
 engine = create_engine(
-    DATABASE_URL,
+    _sa_url,
     pool_pre_ping=True,
     pool_size=10,
     max_overflow=20,

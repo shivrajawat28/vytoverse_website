@@ -3,7 +3,7 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from .config import FRONTEND_URL, UPLOAD_DIR, BACKEND_URL, PORT
+from .config import FRONTEND_URL, UPLOAD_DIR, BACKEND_URL, PORT, DATABASE_URL
 from .database import engine, Base
 from .routes import (
     auth_router,
@@ -20,6 +20,25 @@ from .routes import (
 
 logger = logging.getLogger("vytoverse")
 
+# ── Helper: normalise a DATABASE_URL for psycopg2 ────────────────────
+# Render provides "postgres://..." — psycopg2 expects "postgresql://...".
+# We also remove any sslmode query parameter (psycopg2 uses connect kwarg).
+def _normalise_for_psycopg2(url: str) -> str:
+    if not url:
+        return url
+    # Fix scheme
+    if url.startswith("postgres://"):
+        url = "postgresql://" + url[len("postgres://"):]
+    # Remove sslmode query param (psycopg2 handles it via connect kwargs)
+    if "sslmode=" in url:
+        # Split on ? or & around sslmode
+        if "?" in url:
+            base, query = url.split("?", 1)
+            params = [p for p in query.split("&") if not p.startswith("sslmode=")]
+            url = base if not params else f"{base}?{'&'.join(params)}"
+    return url
+
+
 # ── Database Initialization ──────────────────────────────────────────
 # Create tables (safe for fresh production databases — no drops)
 Base.metadata.create_all(bind=engine)
@@ -28,16 +47,20 @@ Base.metadata.create_all(bind=engine)
 # ALTER TYPE ... ADD VALUE cannot run inside a transaction in PostgreSQL.
 # We use a raw psycopg2 connection with autocommit for the enum migration.
 # This runs BEFORE any application queries that use the enum.
-_db_url = str(engine.url)
-if _db_url.startswith("postgresql"):
+_is_prod = DATABASE_URL and "localhost" not in DATABASE_URL and "127.0.0.1" not in DATABASE_URL
+
+if DATABASE_URL and DATABASE_URL.startswith("postgresql"):
     try:
         import psycopg2
-        # Parse connection string and create a raw autocommit connection
-        conn = psycopg2.connect(_db_url)
+
+        _psycopg_url = _normalise_for_psycopg2(DATABASE_URL)
+        logger.info(f"Connecting to PostgreSQL for enum migration (host extracted from URL)")
+
+        conn = psycopg2.connect(_psycopg_url)
         conn.autocommit = True
         cur = conn.cursor()
 
-        # First, discover the actual enum type name by querying system catalogs
+        # Discover the actual enum type name by querying system catalogs
         cur.execute("""
             SELECT t.typname, array_agg(e.enumlabel ORDER BY e.enumsortorder)
             FROM pg_type t
@@ -78,10 +101,23 @@ if _db_url.startswith("postgresql"):
 
         cur.close()
         conn.close()
+        logger.info("PostgreSQL enum migration completed successfully")
     except ImportError:
-        logger.warning("psycopg2 not available — skipping PostgreSQL enum migration")
+        msg = "psycopg2 not available — cannot run PostgreSQL enum migration"
+        if _is_prod:
+            logger.error(msg)
+            raise RuntimeError(msg)
+        else:
+            logger.warning(msg)
     except Exception as e:
-        logger.warning(f"PostgreSQL enum migration skipped: {e}")
+        msg = f"PostgreSQL enum migration failed: {e}"
+        if _is_prod:
+            # In production, a broken DB means the service cannot function.
+            # Fail fast instead of serving traffic with a broken schema.
+            logger.error(msg)
+            raise RuntimeError(msg)
+        else:
+            logger.warning(f"{msg} (continuing in dev mode)")
 
 # ── Column Migrations (additive only, safe for all DBs) ─────────────
 try:
