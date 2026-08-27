@@ -10,12 +10,17 @@
  * - Preserves absolute HTTPS URLs (e.g. external Google Drive links)
  * - Converts "/uploads/..." paths to "{API_BASE}/uploads/..."
  * - Works in both local development and production
+ * - Supports optional version param for cache-busting (e.g. after profile image upload)
  */
-export function getAssetUrl(path: string | null | undefined): string | null {
+export function getAssetUrl(path: string | null | undefined, version?: string | number): string | null {
   if (!path) return null;
 
-  // Already an absolute URL — return as-is
+  // Already an absolute URL — return as-is (but still append version if provided)
   if (path.startsWith('http://') || path.startsWith('https://')) {
+    if (version != null) {
+      const sep = path.includes('?') ? '&' : '?';
+      return `${path}${sep}v=${version}`;
+    }
     return path;
   }
 
@@ -28,10 +33,17 @@ export function getAssetUrl(path: string | null | undefined): string | null {
   if (apiBase === '/api') {
     // Dev mode: Vite proxy rewrites /api → backend, but /uploads is also proxied.
     // Return the path as-is; Vite's proxy config handles it.
+    if (version != null) {
+      return `${path}?v=${version}`;
+    }
     return path;
   }
 
   // Production: prefix with the full backend URL
   const base = apiBase.replace(/\/+$/, '');
-  return `${base}${path}`;
+  const url = `${base}${path}`;
+  if (version != null) {
+    return `${url}?v=${version}`;
+  }
+  return url;
 }

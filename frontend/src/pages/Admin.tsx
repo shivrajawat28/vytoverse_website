@@ -507,7 +507,7 @@ export default function Admin() {
                             <td className="px-5 py-4">
                               <div className="flex items-center gap-3">
                                 <div className="w-9 h-9 rounded-full bg-gradient-to-br from-vyto-cyan/30 to-vyto-violet/30 flex items-center justify-center text-sm font-bold text-white shrink-0 overflow-hidden">
-                                  {u.profile_image ? <img src={getAssetUrl(u.profile_image) || u.profile_image} alt="" className="w-full h-full rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} /> : u.name.charAt(0)}
+                                  {u.profile_image ? <img src={getAssetUrl(u.profile_image, u.updated_at || undefined) || u.profile_image} alt="" className="w-full h-full rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} /> : u.name.charAt(0)}
                                 </div>
                                 <div className="min-w-0">
                                   <p className="text-sm font-medium text-white truncate">{u.name}</p>
@@ -549,7 +549,7 @@ export default function Admin() {
                     <div key={u.id} className="glass-card p-4">
                       <div className="flex items-center gap-3 mb-3">
                         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-vyto-cyan/30 to-vyto-violet/30 flex items-center justify-center text-sm font-bold text-white shrink-0 overflow-hidden">
-                          {u.profile_image ? <img src={getAssetUrl(u.profile_image) || u.profile_image} alt="" className="w-full h-full rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} /> : u.name.charAt(0)}
+                          {u.profile_image ? <img src={getAssetUrl(u.profile_image, u.updated_at || undefined) || u.profile_image} alt="" className="w-full h-full rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} /> : u.name.charAt(0)}
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium text-white truncate">{u.name}</p>
@@ -625,7 +625,7 @@ export default function Admin() {
                       <motion.div key={u.id} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} whileHover={{ y: -2 }} className="glass-card p-4 sm:p-5 group">
                         <div className="flex items-center gap-3 mb-3">
                           <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-gradient-to-br from-vyto-cyan/30 to-vyto-violet/30 flex items-center justify-center text-sm font-bold text-white shrink-0 border border-vyto-border group-hover:border-vyto-cyan/30 transition-all overflow-hidden">
-                            {u.profile_image ? <img src={getAssetUrl(u.profile_image) || u.profile_image} alt="" className="w-full h-full rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} /> : u.name.charAt(0)}
+                            {u.profile_image ? <img src={getAssetUrl(u.profile_image, u.updated_at || undefined) || u.profile_image} alt="" className="w-full h-full rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} /> : u.name.charAt(0)}
                           </div>
                           <div className="min-w-0 flex-1">
                             <p className="text-sm font-medium text-white truncate">{u.name}</p>
@@ -797,7 +797,7 @@ export default function Admin() {
               </div>
               <div className="flex items-center gap-3 mb-5 sm:mb-6 p-3 rounded-xl bg-vyto-surface/50 border border-vyto-border/50">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-vyto-cyan/30 to-vyto-violet/30 flex items-center justify-center text-sm font-bold text-white shrink-0 overflow-hidden">
-                  {selectedUser.profile_image ? <img src={getAssetUrl(selectedUser.profile_image) || selectedUser.profile_image} alt="" className="w-full h-full rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} /> : selectedUser.name.charAt(0)}
+                  {selectedUser.profile_image ? <img src={getAssetUrl(selectedUser.profile_image, selectedUser.updated_at || undefined) || selectedUser.profile_image} alt="" className="w-full h-full rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} /> : selectedUser.name.charAt(0)}
                 </div>
                 <div className="min-w-0"><p className="text-sm font-medium text-white truncate">{selectedUser.name}</p><p className="text-xs text-vyto-text-muted truncate">{selectedUser.email}</p></div>
               </div>
@@ -1048,7 +1048,7 @@ export default function Admin() {
               </div>
               <div className="flex items-center gap-3 mb-5 p-3 rounded-xl bg-vyto-surface/50 border border-vyto-border/50">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-vyto-cyan/30 to-vyto-violet/30 flex items-center justify-center text-sm font-bold text-white shrink-0 overflow-hidden">
-                  {selectedUser.profile_image ? <img src={getAssetUrl(selectedUser.profile_image) || selectedUser.profile_image} alt="" className="w-full h-full rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} /> : selectedUser.name.charAt(0)}
+                  {selectedUser.profile_image ? <img src={getAssetUrl(selectedUser.profile_image, selectedUser.updated_at || undefined) || selectedUser.profile_image} alt="" className="w-full h-full rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} /> : selectedUser.name.charAt(0)}
                 </div>
                 <div className="min-w-0"><p className="text-sm font-medium text-white truncate">{selectedUser.name}</p><p className="text-xs text-vyto-text-muted truncate">{selectedUser.email}</p></div>
               </div>

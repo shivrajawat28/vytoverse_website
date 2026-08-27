@@ -153,7 +153,7 @@ function TeamCard({ member, index, featured = false }: { member: User; index: nu
       }`}>
         {member.profile_image ? (
           <img
-            src={getAssetUrl(member.profile_image) || member.profile_image}
+            src={getAssetUrl(member.profile_image, member.updated_at || undefined) || member.profile_image}
             alt={member.name}
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
             onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}

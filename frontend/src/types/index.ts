@@ -18,6 +18,7 @@ export interface User {
   website_url: string | null;
   is_active: number;
   created_at: string | null;
+  updated_at: string | null;
 }
 
 export interface Event {

@@ -88,7 +88,7 @@ export default function Navbar() {
                 >
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-vyto-cyan to-vyto-violet flex items-center justify-center text-white text-sm font-bold">
                     {user?.profile_image ? (
-                      <img src={getAssetUrl(user.profile_image) || user.profile_image} alt="" className="w-full h-full rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                      <img src={getAssetUrl(user.profile_image, user.updated_at || undefined) || user.profile_image} alt="" className="w-full h-full rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                     ) : (
                       user?.name?.charAt(0)?.toUpperCase()
                     )}
