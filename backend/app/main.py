@@ -24,7 +24,41 @@ logger = logging.getLogger("vytoverse")
 # Create tables (safe for fresh production databases — no drops)
 Base.metadata.create_all(bind=engine)
 
-# Add columns if they don't exist (lightweight migration for new fields)
+# ── PostgreSQL Enum Migration ────────────────────────────────────────
+# ALTER TYPE ... ADD VALUE cannot run inside a transaction in PostgreSQL.
+# We need an autocommit connection for this specific operation.
+# This is safe and idempotent — it only adds values if they don't exist.
+_db_url = str(engine.url)
+if _db_url.startswith("postgresql"):
+    try:
+        # Create a separate autocommit engine for enum migration
+        from sqlalchemy import create_engine as _create_engine
+        _autocommit_engine = _create_engine(_db_url, isolation_level="AUTOCOMMIT")
+        with _autocommit_engine.connect() as _conn:
+            _conn.execute(
+                __import__('sqlalchemy').text(
+                    "DO $$ BEGIN "
+                    "ALTER TYPE userrole ADD VALUE IF NOT EXISTS 'PRESIDENT'; "
+                    "EXCEPTION WHEN duplicate_object THEN NULL; "
+                    "END $$;"
+                )
+            )
+            _conn.execute(
+                __import__('sqlalchemy').text(
+                    "DO $$ BEGIN "
+                    "ALTER TYPE userrole ADD VALUE IF NOT EXISTS 'VICE_PRESIDENT'; "
+                    "EXCEPTION WHEN duplicate_object THEN NULL; "
+                    "END $$;"
+                )
+            )
+            logger.info("PostgreSQL enum migration complete: PRESIDENT, VICE_PRESIDENT added")
+        _autocommit_engine.dispose()
+    except Exception as e:
+        # If enum doesn't exist yet (fresh DB), Base.metadata.create_all will create it
+        # with the correct values from the SQLAlchemy model. Log and continue.
+        logger.warning(f"Enum migration skipped (may be fresh DB): {e}")
+
+# ── Column Migrations (additive only, safe for all DBs) ─────────────
 try:
     with engine.connect() as conn:
         conn.execute(
@@ -54,7 +88,7 @@ try:
         )
         conn.commit()
 except Exception:
-    pass  # Columns already exist or different DB dialect
+    pass  # Columns already exist or different DB dialect (SQLite)
 
 # ── FastAPI App ──────────────────────────────────────────────────────
 app = FastAPI(
