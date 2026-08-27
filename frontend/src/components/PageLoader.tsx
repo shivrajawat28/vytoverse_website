@@ -41,9 +41,9 @@ export default function PageLoader() {
               <motion.div
                 animate={{ scale: [1, 1.08, 1] }}
                 transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-                className="w-16 h-16 rounded-xl overflow-hidden shadow-lg shadow-vyto-cyan/20 bg-vyto-surface"
+                className="px-4 py-3 rounded-xl overflow-hidden shadow-lg shadow-vyto-cyan/20 bg-vyto-surface/80 backdrop-blur-sm"
               >
-                <Logo size={64} className="w-full h-full" />
+                <Logo size={40} className="h-10" />
               </motion.div>
             </div>
           </div>

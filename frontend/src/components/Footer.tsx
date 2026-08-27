@@ -10,7 +10,7 @@ export default function Footer() {
           {/* Brand */}
           <div className="lg:col-span-1">
             <Link to="/" className="flex items-center gap-2.5 mb-4">
-              <Logo size={36} className="rounded-lg" />
+              <Logo size={28} className="h-7" />
             </Link>
             <p className="text-sm text-vyto-text-muted leading-relaxed mb-6">
               Where Innovation Meets Code. A futuristic technology club platform for builders, creators, and innovators.

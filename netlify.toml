@@ -8,3 +8,26 @@
   from = "/*"
   to = "/index.html"
   status = 200
+
+# Hashed assets (Vite generates unique hashes per build) — cache aggressively
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# index.html — never cache, always revalidate so new deployments are picked up
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+
+# Static public assets (logo, favicons) — cache for a reasonable period
+[[headers]]
+  for = "/vytoverse-logo.png"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+
+[[headers]]
+  for = "/favicon*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"

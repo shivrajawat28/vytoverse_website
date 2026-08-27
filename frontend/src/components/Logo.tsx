@@ -3,8 +3,8 @@
  * Uses the provided official logo image as the single source of truth.
  *
  * Variants:
- * - "icon": Square/cropped suitable for small spaces (navbar, loader)
- * - "wordmark": Full-width logo suitable for headers and splash
+ * - "icon": Compact icon mode — height controlled, width auto (for navbar, loader)
+ * - "wordmark": Full wordmark — height controlled, width auto (for headers, splash)
  */
 export default function Logo({
   className = '',
@@ -17,24 +17,14 @@ export default function Logo({
   alt?: string;
   variant?: 'icon' | 'wordmark';
 }) {
-  if (variant === 'wordmark') {
-    return (
-      <img
-        src="/vytoverse-logo.png"
-        alt={alt}
-        className={`object-contain ${className}`}
-        draggable={false}
-      />
-    );
-  }
-
+  // Always use height-based sizing with auto width to preserve aspect ratio.
+  // The logo is a wide wordmark (~6:1 aspect ratio) — never force square dimensions.
   return (
     <img
       src="/vytoverse-logo.png"
       alt={alt}
-      width={size}
       height={size}
-      className={`object-contain ${className}`}
+      className={`w-auto object-contain ${className}`}
       draggable={false}
     />
   );

@@ -63,7 +63,7 @@ export default function Signup() {
           {/* Header */}
           <div className="text-center mb-8">
             <div className="mx-auto mb-4">
-              <Logo size={48} className="rounded-xl" />
+              <Logo size={40} className="h-10 mx-auto" />
             </div>
             <h1 className="text-2xl font-bold text-white">Join VytoVerse</h1>
             <p className="text-sm text-vyto-text-muted mt-1">Create your account and start building</p>
