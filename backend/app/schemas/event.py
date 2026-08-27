@@ -23,6 +23,7 @@ class EventBase(BaseModel):
     registration_url: Optional[str] = None
     poster_url: Optional[str] = None
     invitation_url: Optional[str] = None
+    category: Optional[str] = None
     max_participants: Optional[int] = None
 
 
@@ -42,6 +43,7 @@ class EventUpdate(BaseModel):
     registration_url: Optional[str] = None
     poster_url: Optional[str] = None
     invitation_url: Optional[str] = None
+    category: Optional[str] = None
     max_participants: Optional[int] = None
 
 
@@ -60,6 +62,7 @@ class EventResponse(BaseModel):
     registration_url: Optional[str] = None
     poster_url: Optional[str] = None
     invitation_url: Optional[str] = None
+    category: Optional[str] = None
     max_participants: Optional[int] = None
     created_at: Optional[datetime] = None
 

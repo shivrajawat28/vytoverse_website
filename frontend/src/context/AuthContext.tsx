@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import type { User } from '@/types';
+import { hasAdminAccess } from '@/types';
 import { authAPI } from '@/services/api';
 
 interface AuthContextType {
@@ -76,7 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         isAuthenticated: !!user,
-        isAdmin: user?.role === 'admin',
+        isAdmin: user ? hasAdminAccess(user.role) : false,
         loading,
         login,
         signup,

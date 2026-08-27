@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { adminAPI, statsAPI } from '@/services/api';
-import type { User, Event, LibraryResource, Stats, Task, Poster, ImportantLink } from '@/types';
+import { hasAdminAccess, roleDisplayLabel, type User, type Event, type LibraryResource, type Stats, type Task, type Poster, type ImportantLink } from '@/types';
 import toast from 'react-hot-toast';
 
 type Tab = 'overview' | 'users' | 'tasks' | 'team' | 'events' | 'posters' | 'important-links' | 'library';
@@ -57,7 +57,9 @@ export default function Admin() {
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [showPosterModal, setShowPosterModal] = useState(false);
   const [showLinkModal, setShowLinkModal] = useState(false);
+  const [showRoleModal, setShowRoleModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedRole, setSelectedRole] = useState<string>('user');
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [selectedPoster, setSelectedPoster] = useState<Poster | null>(null);
   const [selectedLink, setSelectedLink] = useState<ImportantLink | null>(null);
@@ -203,6 +205,21 @@ export default function Admin() {
     if (user.team_membership === 1) {
       (async () => { try { await adminAPI.toggleTeamMember(user.id, 0); toast.success(`${user.name} removed from team`); loadData(); } catch (err: any) { toast.error(err?.response?.data?.detail || 'Failed'); } })();
     } else { openTeamModal(user); }
+  };
+
+  const openRoleModal = (user: User) => {
+    setSelectedUser(user);
+    setSelectedRole(user.role);
+    setShowRoleModal(true);
+  };
+
+  const handleSaveRole = async () => {
+    if (!selectedUser) return;
+    try {
+      await adminAPI.assignRole(selectedUser.id, selectedRole);
+      toast.success(`${selectedUser.name}'s role updated to ${roleDisplayLabel(selectedRole as any)}`);
+      setShowRoleModal(false); setSelectedUser(null); loadData();
+    } catch (err: any) { toast.error(err?.response?.data?.detail || 'Failed to update role'); }
   };
 
   // ── Task CRUD ──
@@ -392,7 +409,7 @@ export default function Admin() {
                               </div>
                             </td>
                             <td className="px-5 py-4 hidden sm:table-cell">
-                              <span className={`px-2 py-1 rounded-md text-xs font-medium ${u.role === 'admin' ? 'bg-vyto-violet/10 text-vyto-violet' : 'bg-vyto-surface text-vyto-text-muted'}`}>{u.role}</span>
+                              <span className={`px-2 py-1 rounded-md text-xs font-medium ${u.role === 'president' ? 'bg-yellow-500/10 text-yellow-400' : u.role === 'vice_president' ? 'bg-purple-500/10 text-purple-400' : u.role === 'admin' ? 'bg-vyto-violet/10 text-vyto-violet' : 'bg-vyto-surface text-vyto-text-muted'}`}>{roleDisplayLabel(u.role)}</span>
                             </td>
                             <td className="px-5 py-4 hidden md:table-cell">
                               <button onClick={() => handleQuickToggleTeam(u)} className={`px-2 py-1 rounded-md text-xs font-medium transition-all ${u.team_membership === 1 ? 'bg-vyto-cyan/10 text-vyto-cyan border border-vyto-cyan/20 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20' : 'bg-vyto-surface text-vyto-text-muted border border-vyto-border hover:bg-vyto-cyan/10 hover:text-vyto-cyan hover:border-vyto-cyan/20'}`}>
@@ -407,6 +424,7 @@ export default function Admin() {
                             </td>
                             <td className="px-5 py-4 text-right">
                               <div className="flex items-center justify-end gap-2">
+                                <button onClick={() => openRoleModal(u)} className="p-1.5 rounded-lg text-vyto-text-muted hover:text-vyto-violet hover:bg-vyto-violet/10 transition-all" title="Change system role"><Shield className="w-4 h-4" /></button>
                                 <button onClick={() => openTeamModal(u)} className="p-1.5 rounded-lg text-vyto-text-muted hover:text-vyto-cyan hover:bg-vyto-cyan/10 transition-all" title="Manage team"><Settings className="w-4 h-4" /></button>
                                 <button onClick={() => { setSelectedUser(u); setStarCount(u.stars); setShowStarsModal(true); }} className="text-xs text-vyto-cyan hover:underline font-medium">Stars</button>
                               </div>
@@ -869,6 +887,41 @@ export default function Admin() {
               <div className="flex gap-2">
                 <button onClick={() => setShowStarsModal(false)} className="btn-secondary flex-1 !py-2.5">Cancel</button>
                 <button onClick={handleAssignStars} className="btn-primary flex-1 !py-2.5"><Star className="w-4 h-4" /> Assign</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Role Modal */}
+      <AnimatePresence>
+        {showRoleModal && selectedUser && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowRoleModal(false)}>
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="glass-card p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold text-white">System Role</h2>
+                <button onClick={() => setShowRoleModal(false)} className="text-vyto-text-muted hover:text-white"><X className="w-5 h-5" /></button>
+              </div>
+              <div className="flex items-center gap-3 mb-5 p-3 rounded-xl bg-vyto-surface/50 border border-vyto-border/50">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-vyto-cyan/30 to-vyto-violet/30 flex items-center justify-center text-sm font-bold text-white shrink-0 overflow-hidden">
+                  {selectedUser.profile_image ? <img src={selectedUser.profile_image} alt="" className="w-full h-full rounded-full object-cover" /> : selectedUser.name.charAt(0)}
+                </div>
+                <div><p className="text-sm font-medium text-white">{selectedUser.name}</p><p className="text-xs text-vyto-text-muted">{selectedUser.email}</p></div>
+              </div>
+              <p className="text-sm text-vyto-text-secondary mb-3">Select a system role:</p>
+              <div className="space-y-2 mb-6">
+                {(['user', 'admin', 'president', 'vice_president'] as const).map(r => (
+                  <button key={r} onClick={() => setSelectedRole(r)} className={`w-full text-left px-4 py-3 rounded-xl border transition-all text-sm font-medium ${selectedRole === r ? 'border-vyto-cyan bg-vyto-cyan/10 text-vyto-cyan' : 'border-vyto-border bg-vyto-surface/50 text-vyto-text-secondary hover:border-vyto-border/80 hover:text-white'}`}>
+                    <span className="flex items-center gap-2">
+                      {r === 'president' || r === 'vice_president' ? <Crown className="w-4 h-4" /> : r === 'admin' ? <Shield className="w-4 h-4" /> : <Users className="w-4 h-4" />}
+                      {roleDisplayLabel(r)}
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => setShowRoleModal(false)} className="btn-secondary flex-1 !py-2.5">Cancel</button>
+                <button onClick={handleSaveRole} className="btn-primary flex-1 !py-2.5"><Save className="w-4 h-4" /> Save Role</button>
               </div>
             </motion.div>
           </motion.div>

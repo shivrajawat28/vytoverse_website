@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, useInView, AnimatePresence } from 'framer-motion';
 import {
@@ -18,7 +18,58 @@ import {
 import { eventsAPI, statsAPI, teamAPI, postersAPI } from '@/services/api';
 import type { Event, Stats, User, Poster } from '@/types';
 
-const ThreeHero = lazy(() => import('@/components/ThreeHero'));
+/* ─── Animated Hero Background (CSS-based, no WebGL) ─── */
+function HeroBackground() {
+  return (
+    <div className="absolute inset-0 z-0 overflow-hidden">
+      {/* Gradient orbs */}
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-vyto-cyan/[0.04] rounded-full blur-[150px] animate-pulse" />
+      <div className="absolute bottom-1/4 left-1/3 w-[500px] h-[500px] bg-vyto-violet/[0.03] rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '1s' }} />
+      <div className="absolute top-1/3 right-1/4 w-[300px] h-[300px] bg-vyto-blue/[0.03] rounded-full blur-[100px] animate-pulse" style={{ animationDelay: '2s' }} />
+
+      {/* Floating particles */}
+      {Array.from({ length: 20 }).map((_, i) => (
+        <div
+          key={i}
+          className="absolute rounded-full bg-vyto-cyan/20 animate-pulse"
+          style={{
+            width: `${2 + (i % 3)}px`,
+            height: `${2 + (i % 3)}px`,
+            left: `${(i * 17 + 5) % 100}%`,
+            top: `${(i * 23 + 10) % 100}%`,
+            animationDuration: `${3 + (i % 4)}s`,
+            animationDelay: `${i * 0.3}s`,
+          }}
+        />
+      ))}
+
+      {/* Orbiting ring 1 */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full border border-vyto-cyan/[0.06] animate-[spin_20s_linear_infinite]" />
+      {/* Orbiting ring 2 */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] h-[550px] rounded-full border border-vyto-violet/[0.04] animate-[spin_30s_linear_infinite_reverse]" />
+      {/* Orbiting ring 3 */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full border border-vyto-blue/[0.03] animate-[spin_40s_linear_infinite]" />
+
+      {/* Orbiting nodes */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] animate-[spin_20s_linear_infinite]">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-vyto-cyan/40 shadow-[0_0_10px_rgba(0,212,255,0.3)]" />
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-vyto-violet/40" />
+        <div className="absolute top-1/2 left-0 -translate-y-1/2 w-1 h-1 rounded-full bg-vyto-blue/30" />
+      </div>
+
+      {/* Grid lines */}
+      <div className="absolute inset-0 opacity-[0.015]" style={{
+        backgroundImage: 'linear-gradient(rgba(0,212,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(0,212,255,0.5) 1px, transparent 1px)',
+        backgroundSize: '80px 80px',
+      }} />
+
+      {/* Radial fade */}
+      <div className="absolute inset-0 bg-gradient-radial from-transparent via-transparent to-vyto-bg" style={{
+        background: 'radial-gradient(circle at center, transparent 30%, var(--color-vyto-bg) 70%)',
+      }} />
+    </div>
+  );
+}
 
 function AnimatedCounter({ target, label, icon: Icon, delay = 0 }: {
   target: number; label: string; icon: React.ElementType; delay?: number;
@@ -141,12 +192,7 @@ export default function Home() {
       {/* ─── HERO ─── */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-vyto-bg via-vyto-bg to-vyto-bg-2" />
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-vyto-cyan/[0.04] rounded-full blur-[150px]" />
-        <div className="absolute bottom-1/4 left-1/3 w-[500px] h-[500px] bg-vyto-violet/[0.03] rounded-full blur-[120px]" />
-
-        <Suspense fallback={<div className="absolute inset-0 flex items-center justify-center"><div className="w-40 h-40 rounded-full bg-gradient-to-br from-vyto-cyan/10 to-vyto-violet/10 animate-pulse" /></div>}>
-          <ThreeHero />
-        </Suspense>
+        <HeroBackground />
 
         <div className="relative z-10 max-w-5xl mx-auto px-4 text-center pt-20">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
@@ -233,6 +279,7 @@ export default function Home() {
                   <div className="p-6">
                     <div className="flex items-center gap-2 text-xs text-vyto-cyan font-medium mb-3"><Calendar className="w-3.5 h-3.5" />{new Date(event.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
                     <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-vyto-cyan transition-colors">{event.title}</h3>
+                    {event.category && <p className="text-xs text-vyto-violet font-medium mb-2">{event.category}</p>}
                     <p className="text-sm text-vyto-text-muted mb-4 line-clamp-2">{event.short_description || event.description?.slice(0, 120)}</p>
                     <div className="flex items-center justify-between">
                       {event.location && <span className="flex items-center gap-1 text-xs text-vyto-text-muted"><MapPin className="w-3 h-3" />{event.location.split(',')[0]}</span>}

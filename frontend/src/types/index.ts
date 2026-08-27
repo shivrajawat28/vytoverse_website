@@ -1,3 +1,5 @@
+export type SystemRole = 'user' | 'admin' | 'president' | 'vice_president';
+
 export interface User {
   id: number;
   name: string;
@@ -6,7 +8,7 @@ export interface User {
   profile_image: string | null;
   bio: string | null;
   department: string | null;
-  role: 'user' | 'admin';
+  role: SystemRole;
   stars: number;
   team_membership: number;
   team_role: string | null;
@@ -33,6 +35,7 @@ export interface Event {
   registration_url: string | null;
   poster_url: string | null;
   invitation_url: string | null;
+  category: string | null;
   max_participants: number | null;
   created_at: string | null;
 }
@@ -117,4 +120,19 @@ export interface SignupData {
   username?: string;
   email: string;
   password: string;
+}
+
+/** Check if a system role grants admin-level access */
+export function hasAdminAccess(role: SystemRole): boolean {
+  return role === 'admin' || role === 'president' || role === 'vice_president';
+}
+
+/** Display label for a system role */
+export function roleDisplayLabel(role: SystemRole): string {
+  switch (role) {
+    case 'president': return 'President';
+    case 'vice_president': return 'Vice President';
+    case 'admin': return 'Admin';
+    default: return 'User';
+  }
 }

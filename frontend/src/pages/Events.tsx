@@ -98,7 +98,8 @@ export default function Events() {
                     <div className="p-6">
                       {!event.image && <div className="flex items-center justify-between mb-3"><span className={`px-2.5 py-1 rounded-md text-xs font-semibold ${sc.class}`}>{sc.label}</span></div>}
                       <div className="flex items-center gap-1.5 text-xs text-vyto-text-muted mb-2"><Calendar className="w-3.5 h-3.5" />{new Date(event.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
-                      <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-vyto-cyan transition-colors">{event.title}</h3>
+                      <h3 className="text-lg font-semibold text-white mb-1 group-hover:text-vyto-cyan transition-colors">{event.title}</h3>
+                      {event.category && <p className="text-xs text-vyto-violet font-medium mb-2">{event.category}</p>}
                       <p className="text-sm text-vyto-text-muted mb-4 line-clamp-2">{event.short_description || event.description?.slice(0, 150)}</p>
                       <div className="space-y-1.5 mb-4">
                         {event.time_start && <div className="flex items-center gap-2 text-xs text-vyto-text-muted"><Clock className="w-3.5 h-3.5 shrink-0" />{event.time_start.slice(0, 5)}{event.time_end && ` — ${event.time_end.slice(0, 5)}`}</div>}

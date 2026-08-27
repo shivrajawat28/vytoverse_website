@@ -7,6 +7,8 @@ from enum import Enum
 class UserRole(str, Enum):
     USER = "user"
     ADMIN = "admin"
+    PRESIDENT = "president"
+    VICE_PRESIDENT = "vice_president"
 
 
 class UserBase(BaseModel):
@@ -73,3 +75,7 @@ class TeamMemberUpdate(BaseModel):
 
 class StarAssign(BaseModel):
     stars: int
+
+
+class RoleAssign(BaseModel):
+    role: UserRole

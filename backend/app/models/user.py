@@ -8,6 +8,12 @@ import enum
 class UserRole(str, enum.Enum):
     USER = "user"
     ADMIN = "admin"
+    PRESIDENT = "president"
+    VICE_PRESIDENT = "vice_president"
+
+
+# Roles that have admin-level dashboard access
+ADMIN_LEVEL_ROLES = {UserRole.ADMIN, UserRole.PRESIDENT, UserRole.VICE_PRESIDENT}
 
 
 class User(Base):
@@ -32,3 +38,7 @@ class User(Base):
     is_active = Column(Integer, default=1, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    @property
+    def has_admin_access(self) -> bool:
+        return self.role in ADMIN_LEVEL_ROLES

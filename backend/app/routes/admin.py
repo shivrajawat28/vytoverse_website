@@ -2,6 +2,7 @@ import os
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query, status
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from typing import Optional
 from ..database import get_db
 from ..models.user import User, UserRole
@@ -10,14 +11,16 @@ from ..models.library import LibraryResource
 from ..models.task import Task
 from ..models.poster import Poster
 from ..models.important_link import ImportantLink
-from ..schemas.user import UserResponse, UserAdminUpdate, StarAssign, TeamMemberUpdate
+from ..schemas.user import UserResponse, UserAdminUpdate, StarAssign, TeamMemberUpdate, RoleAssign
 from ..schemas.event import EventCreate, EventUpdate, EventResponse
 from ..schemas.library import LibraryCreate, LibraryUpdate, LibraryResponse
 from ..schemas.task import TaskCreate, TaskUpdate, TaskResponse
 from ..schemas.poster import PosterCreate, PosterUpdate, PosterResponse
 from ..schemas.important_link import ImportantLinkCreate, ImportantLinkUpdate, ImportantLinkResponse
 from ..auth.dependencies import get_current_admin
+from ..models.user import ADMIN_LEVEL_ROLES
 from ..config import UPLOAD_DIR, MAX_UPLOAD_SIZE, ALLOWED_IMAGE_TYPES
+import re
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
@@ -77,6 +80,53 @@ def assign_stars(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
     user.stars = request.stars
+    db.commit()
+    db.refresh(user)
+    return UserResponse.model_validate(user)
+
+
+@router.put("/users/{user_id}/role", response_model=UserResponse)
+def assign_role(
+    user_id: int,
+    request: RoleAssign,
+    admin: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    """Assign a system role to a user. Only admin-level users can do this.
+    Prevents removing the last admin-level user."""
+    # Only ADMIN, PRESIDENT, VICE_PRESIDENT can assign roles
+    if admin.role not in ADMIN_LEVEL_ROLES:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only leadership can assign roles",
+        )
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    new_role = request.role
+
+    # Prevent removing the last admin-level user
+    if user.role in ADMIN_LEVEL_ROLES and new_role not in ADMIN_LEVEL_ROLES:
+        admin_count = db.query(func.count(User.id)).filter(
+            User.role.in_([r.value for r in ADMIN_LEVEL_ROLES])
+        ).scalar() or 0
+        if admin_count <= 1:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot remove the last admin-level user",
+            )
+
+    user.role = new_role
+
+    # Auto-add to team when setting PRESIDENT or VICE_PRESIDENT
+    if new_role in (UserRole.PRESIDENT, UserRole.VICE_PRESIDENT):
+        if user.team_membership != 1:
+            user.team_membership = 1
+            if not user.team_role:
+                user.team_role = new_role.value.replace('_', ' ').title()
+
     db.commit()
     db.refresh(user)
     return UserResponse.model_validate(user)

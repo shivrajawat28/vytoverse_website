@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, Zap, ChevronDown, LogOut, User, Shield } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { hasAdminAccess } from '@/types';
 
 const navLinks = [
   { path: '/', label: 'Home' },
@@ -119,7 +120,7 @@ export default function Navbar() {
                         <User className="w-4 h-4" />
                         Profile
                       </Link>
-                      {user?.role === 'admin' && (
+                      {user && hasAdminAccess(user.role) && (
                         <Link
                           to="/admin"
                           className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-vyto-text-secondary hover:text-white hover:bg-white/5 transition-all"
@@ -190,7 +191,7 @@ export default function Navbar() {
                     <Link to="/profile" className="block px-4 py-3 rounded-lg text-sm text-vyto-text-secondary hover:text-white hover:bg-white/5">
                       Profile
                     </Link>
-                    {user?.role === 'admin' && (
+                    {user && hasAdminAccess(user.role) && (
                       <Link to="/admin" className="block px-4 py-3 rounded-lg text-sm text-vyto-text-secondary hover:text-white hover:bg-white/5">
                         Admin Dashboard
                       </Link>

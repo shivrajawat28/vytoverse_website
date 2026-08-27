@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from ..database import get_db
-from ..models.user import User, UserRole
+from ..models.user import User, UserRole, ADMIN_LEVEL_ROLES
 from ..models.event import Event, EventStatus
 from ..models.library import LibraryResource
 from ..models.task import Task
@@ -25,7 +25,7 @@ def get_stats(db: Session = Depends(get_db)):
         or 0
     )
     total_resources = db.query(func.count(LibraryResource.id)).scalar() or 0
-    total_admins = db.query(func.count(User.id)).filter(User.role == UserRole.ADMIN).scalar() or 0
+    total_admins = db.query(func.count(User.id)).filter(User.role.in_([r.value for r in ADMIN_LEVEL_ROLES])).scalar() or 0
     team_members = db.query(func.count(User.id)).filter(User.team_membership == 1).scalar() or 0
     active_tasks = db.query(func.count(Task.id)).filter(Task.status.in_(['todo', 'in_progress'])).scalar() or 0
     active_posters = db.query(func.count(Poster.id)).filter(Poster.active == True).scalar() or 0

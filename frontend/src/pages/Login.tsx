@@ -123,19 +123,6 @@ export default function Login() {
               Sign up
             </Link>
           </p>
-
-          {/* Demo credentials */}
-          <div className="mt-6 p-4 rounded-xl bg-vyto-surface/80 border border-vyto-border/50">
-            <p className="text-xs text-vyto-text-muted text-center mb-2 font-medium">Demo Credentials</p>
-            <div className="space-y-1">
-              <p className="text-xs text-vyto-text-secondary text-center">
-                Admin: <span className="text-vyto-cyan font-mono">admin@vytoverse.com</span> / <span className="text-vyto-cyan font-mono">admin123</span>
-              </p>
-              <p className="text-xs text-vyto-text-secondary text-center">
-                User: <span className="text-vyto-cyan font-mono">aarav@example.com</span> / <span className="text-vyto-cyan font-mono">password123</span>
-              </p>
-            </div>
-          </div>
         </div>
       </motion.div>
     </div>

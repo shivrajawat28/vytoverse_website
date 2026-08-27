@@ -47,6 +47,11 @@ try:
                 "ALTER TABLE events ADD COLUMN IF NOT EXISTS invitation_url VARCHAR(500)"
             )
         )
+        conn.execute(
+            __import__('sqlalchemy').text(
+                "ALTER TABLE events ADD COLUMN IF NOT EXISTS category VARCHAR(200)"
+            )
+        )
         conn.commit()
 except Exception:
     pass  # Columns already exist or different DB dialect

@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Camera, Save, Trophy, Mail, Building2, Edit3, Star, Shield, Users, CheckSquare, Link2, ExternalLink, Calendar } from 'lucide-react';
+import { Camera, Save, Trophy, Mail, Building2, Edit3, Star, Shield, Users, CheckSquare, Link2, ExternalLink, Calendar, Crown } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { usersAPI, tasksAPI, importantLinksAPI } from '@/services/api';
-import type { Task, ImportantLink } from '@/types';
+import { hasAdminAccess, roleDisplayLabel, type Task, type ImportantLink } from '@/types';
 import toast from 'react-hot-toast';
 
 export default function Profile() {
@@ -90,7 +90,11 @@ export default function Profile() {
                   <h1 className="text-2xl font-bold text-white">{user.name}</h1>
                   {user.username && <p className="text-vyto-text-muted text-sm">@{user.username}</p>}
                   <div className="flex items-center justify-center sm:justify-start gap-2 mt-3 flex-wrap">
-                    {user.role === 'admin' && <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-vyto-violet/10 text-vyto-violet border border-vyto-violet/20"><Shield className="w-3 h-3" /> Admin</span>}
+                    {hasAdminAccess(user.role) && (
+                      <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold ${user.role === 'president' ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20' : user.role === 'vice_president' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' : 'bg-vyto-violet/10 text-vyto-violet border border-vyto-violet/20'}`}>
+                        {user.role === 'president' ? <Crown className="w-3 h-3" /> : user.role === 'vice_president' ? <Crown className="w-3 h-3" /> : <Shield className="w-3 h-3" />} {roleDisplayLabel(user.role)}
+                      </span>
+                    )}
                     {user.team_membership === 1 && <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-vyto-cyan/10 text-vyto-cyan border border-vyto-cyan/20"><Users className="w-3 h-3" /> Team Member</span>}
                     {user.team_membership === 1 && user.team_role && <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-vyto-blue/10 text-vyto-blue border border-vyto-blue/20">{user.team_role}</span>}
                   </div>

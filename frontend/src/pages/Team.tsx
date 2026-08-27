@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Code2, Globe, AtSign, Trophy, Search, Shield, Star, Crown } from 'lucide-react';
 import { teamAPI } from '@/services/api';
-import type { User } from '@/types';
+import { hasAdminAccess, roleDisplayLabel, type User } from '@/types';
 
 export default function Team() {
   const [members, setMembers] = useState<User[]>([]);
@@ -25,9 +25,9 @@ export default function Team() {
       (m.bio && m.bio.toLowerCase().includes(search.toLowerCase()))
   );
 
-  // Separate admin from team members
-  const adminMembers = filtered.filter((m) => m.role === 'admin');
-  const regularMembers = filtered.filter((m) => m.role !== 'admin');
+  // Separate admin-level from regular team members
+  const adminMembers = filtered.filter((m) => hasAdminAccess(m.role));
+  const regularMembers = filtered.filter((m) => !hasAdminAccess(m.role));
 
   return (
     <div className="relative pt-24">
@@ -177,7 +177,7 @@ function TeamCard({ member, index, featured = false }: { member: User; index: nu
               ? 'bg-vyto-violet/10 text-vyto-violet border border-vyto-violet/20'
               : 'bg-vyto-cyan/10 text-vyto-cyan border border-vyto-cyan/20'
           }`}>
-            {member.role === 'admin' && <Shield className="w-3.5 h-3.5" />}
+            {hasAdminAccess(member.role) && <Shield className="w-3.5 h-3.5" />}
             {member.team_role}
           </span>
         </div>
@@ -190,9 +190,9 @@ function TeamCard({ member, index, featured = false }: { member: User; index: nu
 
       {/* Badges */}
       <div className="flex items-center justify-center gap-2 mb-3">
-        {member.role === 'admin' && (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-vyto-violet/10 text-vyto-violet border border-vyto-violet/20">
-            <Shield className="w-3 h-3" /> Admin
+        {hasAdminAccess(member.role) && (
+          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${member.role === 'president' ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20' : member.role === 'vice_president' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' : 'bg-vyto-violet/10 text-vyto-violet border border-vyto-violet/20'}`}>
+            {member.role === 'president' || member.role === 'vice_president' ? <Crown className="w-3 h-3" /> : <Shield className="w-3 h-3" />} {roleDisplayLabel(member.role)}
           </span>
         )}
         {member.team_membership === 1 && member.role !== 'admin' && (

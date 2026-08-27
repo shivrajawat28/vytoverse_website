@@ -28,6 +28,7 @@ class Event(Base):
     registration_url = Column(String(500), nullable=True)
     poster_url = Column(String(500), nullable=True)
     invitation_url = Column(String(500), nullable=True)
+    category = Column(String(200), nullable=True)
     max_participants = Column(Integer, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

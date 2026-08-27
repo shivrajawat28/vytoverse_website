@@ -105,6 +105,8 @@ export const adminAPI = {
   assignStars: (id: number, stars: number) => api.post(`/admin/users/${id}/stars`, { stars }),
   toggleTeamMember: (id: number, teamMembership: number, teamRole?: string) =>
     api.put(`/admin/users/${id}/team`, { team_membership: teamMembership, team_role: teamRole || null }),
+  assignRole: (id: number, role: string) =>
+    api.put(`/admin/users/${id}/role`, { role }),
 
   // Events
   listEvents: (params?: Record<string, unknown>) => api.get('/admin/events', { params }),

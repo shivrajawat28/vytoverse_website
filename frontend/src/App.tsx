@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { hasAdminAccess } from '@/types';
 import MainLayout from '@/layouts/MainLayout';
 import PageLoader from '@/components/PageLoader';
 import Home from '@/pages/Home';
@@ -14,10 +15,10 @@ import Profile from '@/pages/Profile';
 import Admin from '@/pages/Admin';
 
 function ProtectedRoute({ children, adminOnly = false }: { children: React.ReactNode; adminOnly?: boolean }) {
-  const { isAuthenticated, isAdmin, loading } = useAuth();
+  const { isAuthenticated, user, loading } = useAuth();
   if (loading) return null;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
-  if (adminOnly && !isAdmin) return <Navigate to="/" replace />;
+  if (adminOnly && user && !hasAdminAccess(user.role)) return <Navigate to="/" replace />;
   return <>{children}</>;
 }
 
