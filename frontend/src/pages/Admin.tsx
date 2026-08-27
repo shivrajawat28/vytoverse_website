@@ -20,6 +20,7 @@ import {
   Link2,
   ExternalLink,
   Edit3,
+  Shield,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { adminAPI, statsAPI } from '@/services/api';
@@ -104,7 +105,7 @@ export default function Admin() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [statsRes, usersRes, eventsRes, resourcesRes, tasksRes, postersRes, linksRes] = await Promise.all([
+      const [statsResult, usersResult, eventsResult, resourcesResult, tasksResult, postersResult, linksResult] = await Promise.allSettled([
         statsAPI.get(),
         adminAPI.listUsers({ limit: 100 }),
         adminAPI.listEvents({}),
@@ -113,13 +114,13 @@ export default function Admin() {
         adminAPI.listPosters(),
         adminAPI.listImportantLinks({}),
       ]);
-      setStats(statsRes.data);
-      setUsers(usersRes.data);
-      setEvents(eventsRes.data);
-      setResources(resourcesRes.data);
-      setTasks(tasksRes.data);
-      setPosters(postersRes.data);
-      setImportantLinks(linksRes.data);
+      if (statsResult.status === 'fulfilled') setStats(statsResult.value.data);
+      if (usersResult.status === 'fulfilled') setUsers(usersResult.value.data);
+      if (eventsResult.status === 'fulfilled') setEvents(eventsResult.value.data);
+      if (resourcesResult.status === 'fulfilled') setResources(resourcesResult.value.data);
+      if (tasksResult.status === 'fulfilled') setTasks(tasksResult.value.data);
+      if (postersResult.status === 'fulfilled') setPosters(postersResult.value.data);
+      if (linksResult.status === 'fulfilled') setImportantLinks(linksResult.value.data);
     } catch { /* keep defaults */ } finally { setLoading(false); }
   };
 
@@ -401,7 +402,7 @@ export default function Admin() {
                             <td className="px-5 py-4">
                               <div className="flex items-center gap-3">
                                 <div className="w-9 h-9 rounded-full bg-gradient-to-br from-vyto-cyan/30 to-vyto-violet/30 flex items-center justify-center text-sm font-bold text-white shrink-0 overflow-hidden">
-                                  {u.profile_image ? <img src={u.profile_image} alt="" className="w-full h-full rounded-full object-cover" /> : u.name.charAt(0)}
+                                  {u.profile_image ? <img src={getAssetUrl(u.profile_image) || u.profile_image} alt="" className="w-full h-full rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} /> : u.name.charAt(0)}
                                 </div>
                                 <div className="min-w-0">
                                   <p className="text-sm font-medium text-white truncate">{u.name}</p>
@@ -486,7 +487,7 @@ export default function Admin() {
                       <motion.div key={u.id} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} whileHover={{ y: -2 }} className="glass-card p-5 group">
                         <div className="flex items-center gap-3 mb-3">
                           <div className="w-11 h-11 rounded-full bg-gradient-to-br from-vyto-cyan/30 to-vyto-violet/30 flex items-center justify-center text-sm font-bold text-white shrink-0 border border-vyto-border group-hover:border-vyto-cyan/30 transition-all overflow-hidden">
-                            {u.profile_image ? <img src={u.profile_image} alt="" className="w-full h-full rounded-full object-cover" /> : u.name.charAt(0)}
+                            {u.profile_image ? <img src={getAssetUrl(u.profile_image) || u.profile_image} alt="" className="w-full h-full rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} /> : u.name.charAt(0)}
                           </div>
                           <div className="min-w-0 flex-1">
                             <p className="text-sm font-medium text-white truncate">{u.name}</p>
@@ -560,7 +561,7 @@ export default function Admin() {
                         <div key={p.id} className="glass-card p-5 flex items-center justify-between gap-4">
                           <div className="flex items-center gap-4 flex-1 min-w-0">
                             <div className="w-16 h-16 rounded-lg bg-vyto-surface overflow-hidden shrink-0">
-                              <img src={p.image_url} alt={p.title || 'Poster'} className="w-full h-full object-cover" />
+                              <img src={getAssetUrl(p.image_url) || p.image_url} alt={p.title || 'Poster'} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                             </div>
                             <div className="min-w-0">
                               <h3 className="text-base font-semibold text-white truncate">{p.title || 'Untitled Poster'}</h3>
@@ -654,7 +655,7 @@ export default function Admin() {
               </div>
               <div className="flex items-center gap-3 mb-6 p-3 rounded-xl bg-vyto-surface/50 border border-vyto-border/50">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-vyto-cyan/30 to-vyto-violet/30 flex items-center justify-center text-sm font-bold text-white shrink-0 overflow-hidden">
-                  {selectedUser.profile_image ? <img src={selectedUser.profile_image} alt="" className="w-full h-full rounded-full object-cover" /> : selectedUser.name.charAt(0)}
+                  {selectedUser.profile_image ? <img src={getAssetUrl(selectedUser.profile_image) || selectedUser.profile_image} alt="" className="w-full h-full rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} /> : selectedUser.name.charAt(0)}
                 </div>
                 <div><p className="text-sm font-medium text-white">{selectedUser.name}</p><p className="text-xs text-vyto-text-muted">{selectedUser.email}</p></div>
               </div>
@@ -905,7 +906,7 @@ export default function Admin() {
               </div>
               <div className="flex items-center gap-3 mb-5 p-3 rounded-xl bg-vyto-surface/50 border border-vyto-border/50">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-vyto-cyan/30 to-vyto-violet/30 flex items-center justify-center text-sm font-bold text-white shrink-0 overflow-hidden">
-                  {selectedUser.profile_image ? <img src={selectedUser.profile_image} alt="" className="w-full h-full rounded-full object-cover" /> : selectedUser.name.charAt(0)}
+                  {selectedUser.profile_image ? <img src={getAssetUrl(selectedUser.profile_image) || selectedUser.profile_image} alt="" className="w-full h-full rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} /> : selectedUser.name.charAt(0)}
                 </div>
                 <div><p className="text-sm font-medium text-white">{selectedUser.name}</p><p className="text-xs text-vyto-text-muted">{selectedUser.email}</p></div>
               </div>
