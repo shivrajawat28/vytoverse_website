@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+.venv/
+env/
+
+# Environment — NEVER commit secrets
+.env
+.env.local
+.env.production
+.env.*
+!.env.example
+
+# Build
+frontend/dist/
+frontend/build/
+*.egg-info/
+
+# Uploads (local dev files)
+backend/uploads/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Database
+*.db
+*.sqlite3
+
+# Python
+*.egg
+dist/
+build/
