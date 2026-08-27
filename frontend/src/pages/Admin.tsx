@@ -24,6 +24,7 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { adminAPI, statsAPI } from '@/services/api';
 import { hasAdminAccess, roleDisplayLabel, type User, type Event, type LibraryResource, type Stats, type Task, type Poster, type ImportantLink } from '@/types';
+import { getAssetUrl } from '@/utils/assets';
 import toast from 'react-hot-toast';
 
 type Tab = 'overview' | 'users' | 'tasks' | 'team' | 'events' | 'posters' | 'important-links' | 'library';

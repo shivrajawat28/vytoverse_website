@@ -119,6 +119,41 @@ if DATABASE_URL and DATABASE_URL.startswith("postgresql"):
         else:
             logger.warning(f"{msg} (continuing in dev mode)")
 
+# ── Production Admin Bootstrap ──────────────────────────────────────
+# If INITIAL_ADMIN_EMAIL and INITIAL_ADMIN_PASSWORD are set, create or
+# verify the admin account exists. This is idempotent and safe.
+_initial_admin_email = os.getenv("INITIAL_ADMIN_EMAIL")
+_initial_admin_password = os.getenv("INITIAL_ADMIN_PASSWORD")
+if _initial_admin_email and _initial_admin_password:
+    try:
+        from .models.user import User, UserRole, ADMIN_LEVEL_ROLES
+        from .auth.password import hash_password
+        from .database import SessionLocal
+
+        _db = SessionLocal()
+        try:
+            _existing = _db.query(User).filter(User.email == _initial_admin_email).first()
+            if not _existing:
+                _new_admin = User(
+                    name="Admin",
+                    email=_initial_admin_email,
+                    password_hash=hash_password(_initial_admin_password),
+                    role=UserRole.ADMIN,
+                )
+                _db.add(_new_admin)
+                _db.commit()
+                logger.info(f"Created initial admin account: {_initial_admin_email}")
+            elif _existing.role not in ADMIN_LEVEL_ROLES:
+                _existing.role = UserRole.ADMIN
+                _db.commit()
+                logger.info(f"Promoted existing user to admin: {_initial_admin_email}")
+            else:
+                logger.info(f"Initial admin account already exists: {_initial_admin_email}")
+        finally:
+            _db.close()
+    except Exception as e:
+        logger.warning(f"Initial admin bootstrap failed: {e}")
+
 # ── Column Migrations (additive only, safe for all DBs) ─────────────
 try:
     with engine.connect() as conn:

@@ -5,12 +5,10 @@ import {
   Eye,
   Rocket,
   Users,
-  Code,
-  Award,
-  Heart,
-  Zap,
-  Lightbulb,
-  Globe,
+  Palette,
+  Gamepad2,
+  Code2,
+  Swords,
   ArrowRight,
   CheckCircle2,
 } from 'lucide-react';
@@ -29,6 +27,45 @@ const timeline = [
   { year: '2022', title: 'Industry Partnerships', desc: 'Partnered with tech companies for mentorships, internships, and events.' },
   { year: '2023', title: 'Open Source', desc: 'Launched major open-source projects adopted by developers worldwide.' },
   { year: '2024', title: 'VytoVerse Platform', desc: 'Built the VytoVerse platform to connect and empower tech communities.' },
+];
+
+const officialEvents = [
+  {
+    icon: Palette,
+    title: 'Artistry Arena',
+    category: 'Canva Designing Competition',
+    desc: 'Showcase your creativity and design skills in this exciting Canva competition.',
+    color: 'text-pink-400',
+    bg: 'bg-pink-500/10',
+    border: 'border-pink-500/20',
+  },
+  {
+    icon: Gamepad2,
+    title: 'Elite Combat Cup',
+    category: 'Gaming Tournament',
+    desc: 'Compete in an exciting gaming tournament with bracket-style elimination.',
+    color: 'text-green-400',
+    bg: 'bg-green-500/10',
+    border: 'border-green-500/20',
+  },
+  {
+    icon: Code2,
+    title: 'AlgoQuizathon',
+    category: 'Programming Tech Quiz',
+    desc: 'Test your algorithmic thinking and programming knowledge in team rounds.',
+    color: 'text-vyto-cyan',
+    bg: 'bg-vyto-cyan/10',
+    border: 'border-vyto-cyan/20',
+  },
+  {
+    icon: Swords,
+    title: 'Vyto HackClash',
+    category: '36-Hours Hackathon',
+    desc: 'Push your limits in a 36-hour hackathon building innovative solutions from scratch.',
+    color: 'text-vyto-violet',
+    bg: 'bg-vyto-violet/10',
+    border: 'border-vyto-violet/20',
+  },
 ];
 
 export default function About() {
@@ -82,36 +119,30 @@ export default function About() {
         </div>
       </section>
 
-      {/* What We Do */}
+      {/* Official Events */}
       <section className="section-padding py-16">
         <div className="max-w-6xl mx-auto">
           <motion.div {...fadeUp} className="text-center mb-12">
             <span className="text-sm font-semibold text-vyto-cyan uppercase tracking-wider">What We Do</span>
-            <h2 className="text-3xl sm:text-4xl font-bold mt-3">Building skills through experience</h2>
+            <h2 className="text-3xl sm:text-4xl font-bold mt-3">Our signature events</h2>
           </motion.div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {[
-              { icon: Code, title: 'Coding Workshops', desc: 'Hands-on sessions covering web dev, ML, cybersecurity, and more.' },
-              { icon: Rocket, title: 'Hackathons', desc: '48-hour innovation marathons where teams build real solutions.' },
-              { icon: Users, title: 'Mentorship', desc: 'Industry professionals guide members through their tech journey.' },
-              { icon: Award, title: 'Competitions', desc: 'CTFs, coding contests, and challenges that sharpen skills.' },
-              { icon: Globe, title: 'Open Source', desc: 'Contributing to and maintaining impactful open-source projects.' },
-              { icon: Heart, title: 'Community', desc: 'A supportive network of like-minded tech enthusiasts.' },
-            ].map(({ icon: Icon, title, desc }, i) => (
+          <div className="grid sm:grid-cols-2 gap-5">
+            {officialEvents.map(({ icon: Icon, title, category, desc, color, bg, border }, i) => (
               <motion.div
                 key={title}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: i * 0.06 }}
+                transition={{ delay: i * 0.08 }}
                 whileHover={{ y: -3, transition: { duration: 0.2 } }}
                 className="glass-card-hover p-6"
               >
-                <div className="w-11 h-11 rounded-xl bg-vyto-cyan/10 flex items-center justify-center mb-4">
-                  <Icon className="w-5 h-5 text-vyto-cyan" />
+                <div className={`w-12 h-12 rounded-xl ${bg} border ${border} flex items-center justify-center mb-4`}>
+                  <Icon className={`w-6 h-6 ${color}`} />
                 </div>
-                <h3 className="text-lg font-semibold text-white mb-2">{title}</h3>
+                <h3 className="text-lg font-semibold text-white mb-1">{title}</h3>
+                <p className={`text-sm font-medium ${color} mb-2`}>{category}</p>
                 <p className="text-sm text-vyto-text-muted leading-relaxed">{desc}</p>
               </motion.div>
             ))}
@@ -148,10 +179,10 @@ export default function About() {
 
             <motion.div {...fadeUp} transition={{ duration: 0.6, delay: 0.1 }} className="grid grid-cols-2 gap-4">
               {[
-                { icon: Zap, number: '150+', label: 'Members' },
-                { icon: Lightbulb, number: '25+', label: 'Events' },
-                { icon: Award, number: '50+', label: 'Resources' },
-                { icon: Globe, number: '10+', label: 'Categories' },
+                { icon: Users, number: '150+', label: 'Members' },
+                { icon: Rocket, number: '25+', label: 'Events' },
+                { icon: Target, number: '50+', label: 'Resources' },
+                { icon: Eye, number: '10+', label: 'Categories' },
               ].map(({ icon: Icon, number, label }) => (
                 <div key={label} className="glass-card p-5 text-center">
                   <Icon className="w-5 h-5 text-vyto-cyan mx-auto mb-2" />

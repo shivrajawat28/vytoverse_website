@@ -5,6 +5,7 @@ import { Menu, X, ChevronDown, LogOut, User, Shield } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { hasAdminAccess } from '@/types';
 import Logo from '@/components/Logo';
+import { getAssetUrl } from '@/utils/assets';
 
 const navLinks = [
   { path: '/', label: 'Home' },
@@ -87,7 +88,7 @@ export default function Navbar() {
                 >
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-vyto-cyan to-vyto-violet flex items-center justify-center text-white text-sm font-bold">
                     {user?.profile_image ? (
-                      <img src={user.profile_image} alt="" className="w-full h-full rounded-full object-cover" />
+                      <img src={getAssetUrl(user.profile_image) || user.profile_image} alt="" className="w-full h-full rounded-full object-cover" />
                     ) : (
                       user?.name?.charAt(0)?.toUpperCase()
                     )}

@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Code2, Globe, AtSign, Trophy, Search, Shield, Star, Crown } from 'lucide-react';
 import { teamAPI } from '@/services/api';
 import { hasAdminAccess, roleDisplayLabel, type User } from '@/types';
+import { getAssetUrl } from '@/utils/assets';
 
 export default function Team() {
   const [members, setMembers] = useState<User[]>([]);
@@ -152,7 +153,7 @@ function TeamCard({ member, index, featured = false }: { member: User; index: nu
       }`}>
         {member.profile_image ? (
           <img
-            src={member.profile_image}
+            src={getAssetUrl(member.profile_image) || member.profile_image}
             alt={member.name}
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
             onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
