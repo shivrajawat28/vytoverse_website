@@ -346,9 +346,9 @@ export default function Admin() {
 
   return (
     <div className="relative pt-24 min-h-screen overflow-x-hidden">
-      {/* ─── Mobile Admin Header ─── */}
+      {/* ─── Mobile Admin Toolbar (compact, no logo) ─── */}
       <div className="lg:hidden fixed top-16 left-0 right-0 z-40 bg-vyto-bg/90 backdrop-blur-xl border-b border-vyto-border/60">
-        <div className="flex items-center justify-between px-4 h-14">
+        <div className="flex items-center justify-between px-4 h-12">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setDrawerOpen(true)}
@@ -357,7 +357,9 @@ export default function Admin() {
             >
               <Menu className="w-5 h-5" />
             </button>
-            <Logo variant="wordmark" className="h-7 w-auto max-w-[140px]" />
+            <span className="text-sm font-semibold text-white">
+              Admin
+            </span>
           </div>
           <span className="text-xs font-medium text-vyto-cyan bg-vyto-cyan/10 px-2.5 py-1 rounded-md border border-vyto-cyan/20">
             {tabs.find(t => t.key === activeTab)?.label}

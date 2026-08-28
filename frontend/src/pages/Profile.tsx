@@ -82,11 +82,12 @@ export default function Profile() {
                   <div className="w-28 h-28 rounded-full bg-gradient-to-br from-vyto-cyan/30 to-vyto-violet/30 flex items-center justify-center overflow-hidden border-2 border-vyto-border group-hover:border-vyto-cyan/30 transition-all duration-300">
                     {user.profile_image ? <img src={getAssetUrl(user.profile_image, user.updated_at || undefined) || user.profile_image} alt={user.name} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} /> : <span className="text-4xl font-bold text-white">{user.name.charAt(0)}</span>}
                   </div>
-                  <label className="absolute bottom-0 right-0 w-9 h-9 rounded-full bg-vyto-cyan flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
-                    {uploading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Camera className="w-4 h-4 text-white" />}
-                    <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                  <label className="absolute bottom-0 right-0 w-10 h-10 rounded-full bg-vyto-cyan flex items-center justify-center cursor-pointer max-lg:opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity shadow-lg">
+                    {uploading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Camera className="w-5 h-5 text-white" />}
+                    <input type="file" accept="image/png,image/jpeg,image/jpg,image/webp" onChange={handleImageUpload} className="hidden" />
                   </label>
                 </div>
+                <p className="mt-1 text-xs text-vyto-cyan max-lg:block lg:hidden">Change Photo</p>
                 <div className="flex-1 text-center sm:text-left">
                   <h1 className="text-2xl font-bold text-white">{user.name}</h1>
                   {user.username && <p className="text-vyto-text-muted text-sm">@{user.username}</p>}
