@@ -85,6 +85,10 @@ async def upload_profile_image(
             f.write(contents)
         current_user.profile_image = local_relative
 
+    # Force updated_at to change so the frontend cache-busting URL parameter updates
+    from datetime import datetime, timezone
+    current_user.updated_at = datetime.now(timezone.utc)
+
     db.commit()
     db.refresh(current_user)
 

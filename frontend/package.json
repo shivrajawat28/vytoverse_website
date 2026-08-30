@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:zip": "vite build && cd dist && zip -r ../dist.zip .",
     "lint": "oxlint",
     "preview": "vite preview"
   },
