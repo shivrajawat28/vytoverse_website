@@ -114,6 +114,28 @@ function Reveal({ children, className = '', delay = 0 }: {
   );
 }
 
+function HomeMemberAvatar({ member }: { member: User }) {
+  const [failed, setFailed] = useState(false);
+  const url = getAssetUrl(member.profile_image, member.updated_at || undefined) || member.profile_image;
+
+  if (url && !failed) {
+    return (
+      <img
+        src={url}
+        alt={member.name}
+        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+        onError={() => setFailed(true)}
+      />
+    );
+  }
+
+  return (
+    <span className="text-2xl font-bold text-white group-hover:scale-110 transition-transform duration-300">
+      {member.name ? member.name.charAt(0).toUpperCase() : '?'}
+    </span>
+  );
+}
+
 export default function Home() {
   const [events, setEvents] = useState<Event[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
@@ -307,7 +329,7 @@ export default function Home() {
               {team.slice(0, 6).map((member, i) => (
                 <motion.div key={member.id} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }} whileHover={{ y: -4, transition: { duration: 0.2 } }} className="glass-card-hover p-6 text-center group">
                   <div className="w-20 h-20 rounded-full bg-gradient-to-br from-vyto-cyan/30 to-vyto-violet/30 flex items-center justify-center mx-auto mb-4 overflow-hidden border-2 border-vyto-border group-hover:border-vyto-cyan/30 transition-all duration-300 group-hover:shadow-[0_0_25px_rgba(0,212,255,0.12)]">
-                    {member.profile_image ? <img src={getAssetUrl(member.profile_image, member.updated_at || undefined) || member.profile_image} alt={member.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" /> : <span className="text-2xl font-bold text-white group-hover:scale-110 transition-transform duration-300">{member.name.charAt(0)}</span>}
+                    <HomeMemberAvatar member={member} />
                   </div>
                   <h3 className="text-base font-semibold text-white">{member.name}</h3>
                   {member.team_role ? <p className="text-sm text-vyto-cyan font-medium mt-1">{member.team_role}</p> : <p className="text-sm text-vyto-text-muted mt-1">{member.department || 'Member'}</p>}

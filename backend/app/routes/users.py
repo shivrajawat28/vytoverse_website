@@ -66,18 +66,45 @@ async def upload_profile_image(
             detail="File too large. Maximum size: 5MB",
         )
 
-    ext = file.filename.split(".")[-1] if "." in file.filename else "jpg"
+    ext = file.filename.split(".")[-1].lower() if "." in file.filename else "jpg"
     filename = f"profile_{current_user.id}.{ext}"
     s3_key = f"uploads/profiles/{filename}"
     local_relative = f"/uploads/profiles/{filename}"
 
-    # Try cloud storage first
-    cloud_url = upload_file(contents, s3_key, file.content_type or "image/jpeg")
-    if cloud_url:
-        # Store the full cloud URL so the frontend can use it directly
-        current_user.profile_image = cloud_url
+    # Persistent cloud storage check
+    is_render = bool(os.getenv("RENDER") or os.getenv("RENDER_SERVICE_ID"))
+    provider = os.getenv("STORAGE_PROVIDER", "local").lower().strip()
+
+    if provider == "s3" or is_render:
+        if not is_cloud_storage():
+            missing = []
+            if not os.getenv("S3_BUCKET"):
+                missing.append("S3_BUCKET")
+            if not os.getenv("S3_ACCESS_KEY"):
+                missing.append("S3_ACCESS_KEY")
+            if not os.getenv("S3_SECRET_KEY"):
+                missing.append("S3_SECRET_KEY")
+            if provider != "s3":
+                missing.append("STORAGE_PROVIDER=s3")
+            error_msg = f"Persistent cloud storage is not configured on Render. Local disk is ephemeral and will be wiped on redeploy. Missing environment variables: {', '.join(missing)}."
+            logger.error(error_msg)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=error_msg,
+            )
+        try:
+            cloud_url = upload_file(contents, s3_key, file.content_type or "image/jpeg")
+            if not cloud_url:
+                raise RuntimeError("Cloud upload failed to return a valid URL")
+            current_user.profile_image = cloud_url
+        except Exception as exc:
+            logger.error(f"Cloud storage upload failed: {exc}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to upload to persistent cloud storage: {str(exc)}",
+            )
     else:
-        # Fall back to local filesystem storage
+        # Local filesystem storage (for local development only)
         upload_path = os.path.join(UPLOAD_DIR, "profiles")
         os.makedirs(upload_path, exist_ok=True)
         filepath = os.path.join(upload_path, filename)
