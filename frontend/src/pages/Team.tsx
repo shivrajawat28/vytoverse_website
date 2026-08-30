@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Code2, Globe, AtSign, Trophy, Search, Crown, Shield, X } from 'lucide-react';
+import { Code2, Globe, AtSign, Trophy, Search, Crown, Shield, X, type LucideIcon } from 'lucide-react';
 import { teamAPI } from '@/services/api';
 import { type User } from '@/types';
 import { getAssetUrl } from '@/utils/assets';
@@ -256,6 +256,12 @@ function getResponsiveGridClass(count: number): string {
 }
 
 /* ─── Profile Card Component (Unified & Production Styled) ─── */
+interface SocialLink {
+  icon: LucideIcon;
+  url: string;
+  label: string;
+}
+
 interface TeamCardProps {
   member: User;
   isLeadership: boolean;
@@ -320,12 +326,12 @@ function TeamCard({ member, isLeadership, leadershipType, priorityIndex }: TeamC
   }
 
   // Social links extraction
-  const socialLinks = [
-    member.github_url && { icon: Code2, url: member.github_url, label: 'GitHub' },
-    member.linkedin_url && { icon: Globe, url: member.linkedin_url, label: 'LinkedIn' },
-    member.twitter_url && { icon: AtSign, url: member.twitter_url, label: 'Twitter' },
-    member.website_url && { icon: Globe, url: member.website_url, label: 'Website' },
-  ].filter(Boolean) as { icon: React.ElementType; url: string; label: string }[];
+  const socialLinks: SocialLink[] = [
+    member.github_url ? { icon: Code2, url: member.github_url, label: 'GitHub' } : null,
+    member.linkedin_url ? { icon: Globe, url: member.linkedin_url, label: 'LinkedIn' } : null,
+    member.twitter_url ? { icon: AtSign, url: member.twitter_url, label: 'Twitter' } : null,
+    member.website_url ? { icon: Globe, url: member.website_url, label: 'Website' } : null,
+  ].filter((link): link is SocialLink => link !== null);
 
   return (
     <motion.div
