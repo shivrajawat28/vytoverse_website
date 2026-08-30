@@ -188,36 +188,42 @@ except Exception:
 
 # ── Team Role → System Role Sync ────────────────────────────────────
 # If a user has team_role 'President' or 'Vice President' but their system
-# role is still 'user', promote them automatically.  This ensures the
-# Team page Leadership section works correctly.
+# role is still 'user', promote them automatically. This ensures the
+# Team page Leadership section works correctly even on existing databases.
 try:
     from .models.user import User, UserRole
     from .database import SessionLocal
 
     _sync_db = SessionLocal()
     try:
-        _role_map = {
-            'President': UserRole.PRESIDENT,
-            'Vice President': UserRole.VICE_PRESIDENT,
-        }
-        for _team_role_val, _sys_role in _role_map.items():
-            _users = (
-                _sync_db.query(User)
-                .filter(
-                    User.team_role == _team_role_val,
-                    User.role == 'user',
-                )
-                .all()
-            )
-            for _u in _users:
+        _users = _sync_db.query(User).filter(User.team_role.isnot(None)).all()
+        _changed = False
+        for _u in _users:
+            if not _u.team_role:
+                continue
+            _clean = _u.team_role.strip().lower().replace('-', ' ').replace('_', ' ')
+            if _clean == 'president' and _u.role == UserRole.USER:
                 _old = _u.role
-                _u.role = _sys_role
+                _u.role = UserRole.PRESIDENT
+                _u.team_role = "President"
+                _u.team_membership = 1
+                _changed = True
                 logger.info(
                     f"Auto-promoted '{_u.name}' from role={_old} to "
-                    f"role={_sys_role.value} (team_role='{_team_role_val}')"
+                    f"role={UserRole.PRESIDENT.value} (team_role='{_u.team_role}')"
                 )
-            if _users:
-                _sync_db.commit()
+            elif _clean == 'vice president' and _u.role == UserRole.USER:
+                _old = _u.role
+                _u.role = UserRole.VICE_PRESIDENT
+                _u.team_role = "Vice President"
+                _u.team_membership = 1
+                _changed = True
+                logger.info(
+                    f"Auto-promoted '{_u.name}' from role={_old} to "
+                    f"role={UserRole.VICE_PRESIDENT.value} (team_role='{_u.team_role}')"
+                )
+        if _changed:
+            _sync_db.commit()
     finally:
         _sync_db.close()
 except Exception as _e:

@@ -48,6 +48,20 @@ def list_users(
     return [UserResponse.model_validate(u) for u in users]
 
 
+def is_president_designation(designation: Optional[str]) -> bool:
+    if not designation:
+        return False
+    clean = designation.strip().lower().replace('-', ' ').replace('_', ' ')
+    return clean == "president"
+
+
+def is_vice_president_designation(designation: Optional[str]) -> bool:
+    if not designation:
+        return False
+    clean = designation.strip().lower().replace('-', ' ').replace('_', ' ')
+    return clean == "vice president"
+
+
 @router.put("/users/{user_id}", response_model=UserResponse)
 def update_user(
     user_id: int,
@@ -62,6 +76,32 @@ def update_user(
     update_data = request.model_dump(exclude_unset=True)
     for key, value in update_data.items():
         setattr(user, key, value)
+
+    # Synchronize team_role and system role if either was updated
+    if "team_role" in update_data:
+        team_role = user.team_role
+        if is_president_designation(team_role):
+            user.team_role = "President"
+            user.role = UserRole.PRESIDENT
+            user.team_membership = 1
+        elif is_vice_president_designation(team_role):
+            user.team_role = "Vice President"
+            user.role = UserRole.VICE_PRESIDENT
+            user.team_membership = 1
+        elif user.role in (UserRole.PRESIDENT, UserRole.VICE_PRESIDENT) and "role" not in update_data:
+            admin_count = db.query(func.count(User.id)).filter(
+                User.role.in_([r.value for r in ADMIN_LEVEL_ROLES])
+            ).scalar() or 0
+            if admin_count > 1:
+                user.role = UserRole.USER
+
+    if "role" in update_data:
+        if user.role == UserRole.PRESIDENT:
+            user.team_membership = 1
+            user.team_role = "President"
+        elif user.role == UserRole.VICE_PRESIDENT:
+            user.team_membership = 1
+            user.team_role = "Vice President"
 
     db.commit()
     db.refresh(user)
@@ -120,12 +160,21 @@ def assign_role(
 
     user.role = new_role
 
-    # Auto-add to team when setting PRESIDENT or VICE_PRESIDENT
-    if new_role in (UserRole.PRESIDENT, UserRole.VICE_PRESIDENT):
-        if user.team_membership != 1:
-            user.team_membership = 1
-            if not user.team_role:
-                user.team_role = new_role.value.replace('_', ' ').title()
+    # Synchronize team_membership and team_role when setting leadership
+    if new_role == UserRole.PRESIDENT:
+        user.team_membership = 1
+        user.team_role = "President"
+    elif new_role == UserRole.VICE_PRESIDENT:
+        user.team_membership = 1
+        user.team_role = "Vice President"
+    else:
+        # If user was previously President or Vice President and is changed to USER or ADMIN,
+        # clean up leadership team_role so it doesn't linger
+        if is_president_designation(user.team_role) or is_vice_president_designation(user.team_role):
+            if new_role == UserRole.USER and user.team_membership == 1:
+                user.team_role = "Team Member"
+            else:
+                user.team_role = None
 
     db.commit()
     db.refresh(user)
@@ -143,9 +192,10 @@ def toggle_team_membership(
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
-    user.team_membership = 1 if request.team_membership else 0
+    is_team = bool(request.team_membership)
+    user.team_membership = 1 if is_team else 0
 
-    if request.team_membership:
+    if is_team:
         # When adding to team, team_role is required
         if not request.team_role or not request.team_role.strip():
             raise HTTPException(
@@ -158,10 +208,43 @@ def toggle_team_membership(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Team role must be 100 characters or fewer",
             )
-        user.team_role = role
+
+        if is_president_designation(role):
+            user.team_role = "President"
+            user.role = UserRole.PRESIDENT
+        elif is_vice_president_designation(role):
+            user.team_role = "Vice President"
+            user.role = UserRole.VICE_PRESIDENT
+        else:
+            user.team_role = role
+            # If user was in leadership (president or vice_president),
+            # demote them back to user (preserving admin if user.role == ADMIN)
+            if user.role in (UserRole.PRESIDENT, UserRole.VICE_PRESIDENT):
+                admin_count = db.query(func.count(User.id)).filter(
+                    User.role.in_([r.value for r in ADMIN_LEVEL_ROLES])
+                ).scalar() or 0
+                if admin_count <= 1:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Cannot remove the last admin-level user from leadership",
+                    )
+                user.role = UserRole.USER
+            # If user.role == UserRole.ADMIN, preserve it! Do NOT downgrade admin.
     else:
         # When removing from team, clear the role
         user.team_role = None
+        # If user was in leadership, demote back to user (preserving admin if user.role == ADMIN)
+        if user.role in (UserRole.PRESIDENT, UserRole.VICE_PRESIDENT):
+            admin_count = db.query(func.count(User.id)).filter(
+                User.role.in_([r.value for r in ADMIN_LEVEL_ROLES])
+            ).scalar() or 0
+            if admin_count <= 1:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Cannot remove the last admin-level user from leadership",
+                )
+            user.role = UserRole.USER
+        # If user.role == UserRole.ADMIN, preserve it! Do NOT downgrade admin.
 
     db.commit()
     db.refresh(user)
