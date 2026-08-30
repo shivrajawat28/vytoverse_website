@@ -33,8 +33,9 @@ ALLOWED_DOC_TYPES = [
 ]
 
 # Production storage (optional — configure when cloud storage is ready)
-# STORAGE_PROVIDER = os.getenv("STORAGE_PROVIDER", "local")  # "local" or "s3"
-# STORAGE_BUCKET = os.getenv("STORAGE_BUCKET", "")
-# STORAGE_REGION = os.getenv("STORAGE_REGION", "")
-# STORAGE_ACCESS_KEY = os.getenv("STORAGE_ACCESS_KEY", "")
-# STORAGE_SECRET_KEY = os.getenv("STORAGE_SECRET_KEY", "")
+STORAGE_PROVIDER = os.getenv("STORAGE_PROVIDER", "local")  # "local" or "s3"
+S3_ENDPOINT_URL = os.getenv("S3_ENDPOINT_URL", "")
+S3_BUCKET = os.getenv("S3_BUCKET", "")
+S3_ACCESS_KEY = os.getenv("S3_ACCESS_KEY", "")
+S3_SECRET_KEY = os.getenv("S3_SECRET_KEY", "")
+S3_PUBLIC_BASE_URL = os.getenv("S3_PUBLIC_BASE_URL", "")

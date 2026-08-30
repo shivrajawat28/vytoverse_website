@@ -186,6 +186,43 @@ try:
 except Exception:
     pass  # Columns already exist or different DB dialect (SQLite)
 
+# ── Team Role → System Role Sync ────────────────────────────────────
+# If a user has team_role 'President' or 'Vice President' but their system
+# role is still 'user', promote them automatically.  This ensures the
+# Team page Leadership section works correctly.
+try:
+    from .models.user import User, UserRole
+    from .database import SessionLocal
+
+    _sync_db = SessionLocal()
+    try:
+        _role_map = {
+            'President': UserRole.PRESIDENT,
+            'Vice President': UserRole.VICE_PRESIDENT,
+        }
+        for _team_role_val, _sys_role in _role_map.items():
+            _users = (
+                _sync_db.query(User)
+                .filter(
+                    User.team_role == _team_role_val,
+                    User.role == 'user',
+                )
+                .all()
+            )
+            for _u in _users:
+                _old = _u.role
+                _u.role = _sys_role
+                logger.info(
+                    f"Auto-promoted '{_u.name}' from role={_old} to "
+                    f"role={_sys_role.value} (team_role='{_team_role_val}')"
+                )
+            if _users:
+                _sync_db.commit()
+    finally:
+        _sync_db.close()
+except Exception as _e:
+    logger.warning(f"Team role sync failed (non-fatal): {_e}")
+
 # ── FastAPI App ──────────────────────────────────────────────────────
 app = FastAPI(
     title="VytoVerse API",

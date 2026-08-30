@@ -6,6 +6,7 @@ from ..models.user import User
 from ..schemas.user import UserResponse, UserUpdate
 from ..auth.dependencies import get_current_user
 from ..config import UPLOAD_DIR, MAX_UPLOAD_SIZE, ALLOWED_IMAGE_TYPES
+from ..storage import is_cloud_storage, upload_file, get_public_url
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -65,17 +66,25 @@ async def upload_profile_image(
             detail="File too large. Maximum size: 5MB",
         )
 
-    upload_path = os.path.join(UPLOAD_DIR, "profiles")
-    os.makedirs(upload_path, exist_ok=True)
-
     ext = file.filename.split(".")[-1] if "." in file.filename else "jpg"
     filename = f"profile_{current_user.id}.{ext}"
-    filepath = os.path.join(upload_path, filename)
+    s3_key = f"uploads/profiles/{filename}"
+    local_relative = f"/uploads/profiles/{filename}"
 
-    with open(filepath, "wb") as f:
-        f.write(contents)
+    # Try cloud storage first
+    cloud_url = upload_file(contents, s3_key, file.content_type or "image/jpeg")
+    if cloud_url:
+        # Store the full cloud URL so the frontend can use it directly
+        current_user.profile_image = cloud_url
+    else:
+        # Fall back to local filesystem storage
+        upload_path = os.path.join(UPLOAD_DIR, "profiles")
+        os.makedirs(upload_path, exist_ok=True)
+        filepath = os.path.join(upload_path, filename)
+        with open(filepath, "wb") as f:
+            f.write(contents)
+        current_user.profile_image = local_relative
 
-    current_user.profile_image = f"/uploads/profiles/{filename}"
     db.commit()
     db.refresh(current_user)
 
