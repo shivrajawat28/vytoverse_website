@@ -32,8 +32,15 @@ ALLOWED_DOC_TYPES = [
     "application/zip",
 ]
 
-# Production storage (optional — configure when cloud storage is ready)
-STORAGE_PROVIDER = os.getenv("STORAGE_PROVIDER", "local")  # "local" or "s3"
+# Storage Configuration
+STORAGE_PROVIDER = os.getenv("STORAGE_PROVIDER", "supabase")  # "supabase", "s3", or "local"
+
+# Supabase Storage Configuration (Persistent Object Storage for Profile/Team Images)
+SUPABASE_URL = os.getenv("SUPABASE_URL", "").rstrip("/")
+SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip()
+SUPABASE_STORAGE_BUCKET = os.getenv("SUPABASE_STORAGE_BUCKET", "vytoverse-uploads").strip()
+
+# Legacy / S3-compatible storage fallback (optional)
 S3_ENDPOINT_URL = os.getenv("S3_ENDPOINT_URL", "")
 S3_BUCKET = os.getenv("S3_BUCKET", "")
 S3_ACCESS_KEY = os.getenv("S3_ACCESS_KEY", "")

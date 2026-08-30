@@ -288,16 +288,14 @@ def root():
 @app.get("/health")
 def health():
     """Lightweight health check — no auth required."""
-    from .storage import is_cloud_storage, get_storage_provider
+    from .storage import is_supabase_configured, get_storage_provider, get_supabase_bucket
     return {
         "status": "healthy",
         "storage": {
             "provider": get_storage_provider(),
-            "cloud_storage_configured": is_cloud_storage(),
-            "has_bucket": bool(os.getenv("S3_BUCKET")),
-            "has_access_key": bool(os.getenv("S3_ACCESS_KEY")),
-            "has_secret_key": bool(os.getenv("S3_SECRET_KEY")),
-            "has_endpoint": bool(os.getenv("S3_ENDPOINT_URL")),
-            "has_public_url": bool(os.getenv("S3_PUBLIC_BASE_URL")),
+            "supabase_storage_configured": is_supabase_configured(),
+            "has_supabase_url": bool(os.getenv("SUPABASE_URL")),
+            "has_service_role_key": bool(os.getenv("SUPABASE_SERVICE_ROLE_KEY")),
+            "bucket": get_supabase_bucket(),
         },
     }

@@ -6,7 +6,13 @@ from ..models.user import User
 from ..schemas.user import UserResponse, UserUpdate
 from ..auth.dependencies import get_current_user
 from ..config import UPLOAD_DIR, MAX_UPLOAD_SIZE, ALLOWED_IMAGE_TYPES
-from ..storage import is_cloud_storage, upload_file, get_public_url
+from ..storage import (
+    is_cloud_storage,
+    is_supabase_configured,
+    upload_file,
+    get_public_url,
+    get_storage_provider,
+)
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -66,43 +72,75 @@ async def upload_profile_image(
             detail="File too large. Maximum size: 5MB",
         )
 
-    ext = file.filename.split(".")[-1].lower() if "." in file.filename else "jpg"
+    ext = file.filename.split(".")[-1].lower() if file.filename and "." in file.filename else "jpg"
+    if ext == "jpeg":
+        ext = "jpg"
     filename = f"profile_{current_user.id}.{ext}"
-    s3_key = f"uploads/profiles/{filename}"
+    storage_path = f"profiles/{filename}"
     local_relative = f"/uploads/profiles/{filename}"
 
-    # Persistent cloud storage check
+    # Determine execution environment
     is_render = bool(os.getenv("RENDER") or os.getenv("RENDER_SERVICE_ID"))
-    provider = os.getenv("STORAGE_PROVIDER", "local").lower().strip()
+    provider = get_storage_provider()
 
-    if provider == "s3" or is_render:
-        if not is_cloud_storage():
-            missing = []
-            if not os.getenv("S3_BUCKET"):
-                missing.append("S3_BUCKET")
-            if not os.getenv("S3_ACCESS_KEY"):
-                missing.append("S3_ACCESS_KEY")
-            if not os.getenv("S3_SECRET_KEY"):
-                missing.append("S3_SECRET_KEY")
-            if provider != "s3":
-                missing.append("STORAGE_PROVIDER=s3")
-            error_msg = f"Persistent cloud storage is not configured on Render. Local disk is ephemeral and will be wiped on redeploy. Missing environment variables: {', '.join(missing)}."
-            logger.error(error_msg)
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=error_msg,
-            )
+    # 1. Supabase Storage (Primary persistent storage)
+    if is_supabase_configured():
         try:
-            cloud_url = upload_file(contents, s3_key, file.content_type or "image/jpeg")
+            cloud_url = upload_file(
+                data=contents,
+                key=storage_path,
+                content_type=file.content_type or "image/jpeg",
+            )
             if not cloud_url:
-                raise RuntimeError("Cloud upload failed to return a valid URL")
+                raise RuntimeError("Supabase upload returned empty URL")
             current_user.profile_image = cloud_url
         except Exception as exc:
-            logger.error(f"Cloud storage upload failed: {exc}")
+            import logging
+            logging.getLogger("vytoverse.users").error(
+                f"Supabase Storage upload failed for user {current_user.id}: {exc}"
+            )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Failed to upload to persistent cloud storage: {str(exc)}",
+                detail=f"Failed to upload profile image to Supabase Storage: {str(exc)}",
             )
+    elif provider == "s3":
+        # Legacy S3 fallback
+        try:
+            cloud_url = upload_file(
+                data=contents,
+                key=f"uploads/profiles/{filename}",
+                content_type=file.content_type or "image/jpeg",
+            )
+            if not cloud_url:
+                raise RuntimeError("S3 upload returned empty URL")
+            current_user.profile_image = cloud_url
+        except Exception as exc:
+            import logging
+            logging.getLogger("vytoverse.users").error(
+                f"S3 upload failed for user {current_user.id}: {exc}"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to upload profile image to S3: {str(exc)}",
+            )
+    elif is_render:
+        # On Render, ephemeral local disk is prohibited for user uploads to avoid data loss
+        missing = []
+        if not os.getenv("SUPABASE_URL"):
+            missing.append("SUPABASE_URL")
+        if not os.getenv("SUPABASE_SERVICE_ROLE_KEY"):
+            missing.append("SUPABASE_SERVICE_ROLE_KEY")
+        error_msg = (
+            "Persistent Supabase Storage is not configured on Render. "
+            "Local container disk is ephemeral and will be wiped on redeploy. "
+            f"Please configure: {', '.join(missing)} in Render Environment Variables."
+        )
+        import logging
+        logging.getLogger("vytoverse.users").error(error_msg)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=error_msg,
+        )
     else:
         # Local filesystem storage (for local development only)
         upload_path = os.path.join(UPLOAD_DIR, "profiles")
