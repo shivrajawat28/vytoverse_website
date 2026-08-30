@@ -102,16 +102,17 @@ export default function Team() {
             <>
               {/* Leadership Section */}
               {sortedLeadership.length > 0 && (
-                <div className="mb-14">
-                  <div className="flex items-center gap-2.5 mb-8">
+                <div className="mb-10">
+                  <div className="flex items-center gap-2.5 mb-4">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-yellow-500/20 to-purple-500/20 border border-yellow-500/20 flex items-center justify-center">
                       <Crown className="w-5 h-5 text-yellow-400" />
                     </div>
                     <div>
                       <h2 className="text-xl font-bold text-white">Leadership</h2>
-                      <p className="text-sm text-vyto-text-muted">Driving the vision forward</p>
                     </div>
                   </div>
+                  {/* Divider below heading */}
+                  <div className="h-px bg-gradient-to-r from-transparent via-vyto-border to-transparent mb-6" />
                   <div className="grid sm:grid-cols-2 gap-6">
                     {sortedLeadership.map((member, i) => (
                       <LeadershipCard key={member.id} member={member} index={i} />
@@ -120,10 +121,17 @@ export default function Team() {
                 </div>
               )}
 
+              {/* Visual divider between Leadership and Team Members */}
+              {sortedLeadership.length > 0 && teamMembers.length > 0 && (
+                <div className="my-10">
+                  <div className="h-px bg-gradient-to-r from-transparent via-vyto-border to-transparent" />
+                </div>
+              )}
+
               {/* Team Members Section */}
               {teamMembers.length > 0 && (
                 <div>
-                  <div className="flex items-center gap-2.5 mb-8">
+                  <div className="flex items-center gap-2.5 mb-4">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-vyto-cyan/20 to-vyto-violet/20 border border-vyto-cyan/20 flex items-center justify-center">
                       <Shield className="w-5 h-5 text-vyto-cyan" />
                     </div>
@@ -132,6 +140,8 @@ export default function Team() {
                       <p className="text-sm text-vyto-text-muted">The backbone of our community</p>
                     </div>
                   </div>
+                  {/* Divider below heading */}
+                  <div className="h-px bg-gradient-to-r from-transparent via-vyto-border to-transparent mb-6" />
                   <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     {teamMembers.map((member, i) => (
                       <TeamMemberCard key={member.id} member={member} index={i} />
